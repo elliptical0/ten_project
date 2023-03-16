@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "tonc_types.h": "c",
+        "tonc_input.h": "c"
+    }
+}
