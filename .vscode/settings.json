@@ -3,6 +3,8 @@
         "tonc_types.h": "c",
         "tonc_input.h": "c",
         "test.h": "c",
-        "game.h": "c"
+        "game.h": "c",
+        "tonc.h": "c",
+        "tonc_memmap.h": "c"
     }
 }
