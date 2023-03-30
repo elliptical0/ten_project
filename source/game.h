@@ -2,10 +2,12 @@
 
 #include "input.h"
 
+#define curs
+
 // the input and output of the gamestate() function
 typedef struct GAMESTATE {
-    int xpos; // temp, for demo
-    int ypos; // temp, for demo
+    //int cursor_map_x;
+    //int cursor_map_y;
 } GAMESTATE;
 
 int gameinit(GAMESTATE* gamestate);

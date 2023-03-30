@@ -4,10 +4,12 @@ IMGDATA TSDATA[] = { // tileset data
     {&tsfieldTiles, tsfieldTilesLen, &tsfieldPal, tsfieldPalLen}
 };
 IMGDATA SPDATA[] = { // sprite data
+    {&cursTiles, cursTilesLen, &cursPal, cursPalLen},
     {&metrTiles, metrTilesLen, &metrPal, metrPalLen},
     {&testTiles, testTilesLen, &testPal, testPalLen}
 };
 u16 SPATTR[][3] = { // sprite attributes. a0, a1, a2 WITHOUT PALBANK OR TILE INDEX!!!
+    {ATTR0_SQUARE || ATTR0_4BPP, ATTR1_SIZE_16, ATTR2_PRIO(0)},
     {ATTR0_SQUARE || ATTR0_4BPP, ATTR1_SIZE_64, ATTR2_PRIO(0)},
     {ATTR0_SQUARE || ATTR0_4BPP, ATTR1_SIZE_64, ATTR2_PRIO(0)}
 };
@@ -21,6 +23,7 @@ OBJ_ATTR obj_buffer[128];
 u8 objs = 0; // number of OBJ_ATTR currently in the obj_buffer
 OBJ_AFFINE *obj_aff_buffer = (OBJ_AFFINE*)obj_buffer;
 
+OBJ_ATTR *cursor;
     
 /**
  * loads the tileset into memory
@@ -69,11 +72,9 @@ int renderinit(RENDERSTATE* renderstate) {
         ATTR2_PALBANK(0) | 0); // palette index 0, tile index 0
     */
 
-    obj_set_pos(loadSprite(test), 0, 0);
-    renderstate->metroid = loadSprite(metr);
-
-	// Set position
-	obj_set_pos(renderstate->metroid, 176, 96);
+    //obj_set_pos(loadSprite(test), 0, 0);
+    cursor = loadSprite(awaw);
+    obj_set_pos(cursor, 0, 0);
 
 	//oam_copy(oam_mem, obj_buffer, 1); // Update first OAM object
 
@@ -101,12 +102,12 @@ int renderinit(RENDERSTATE* renderstate) {
 int render(INPUTSTATE* inputstate, GAMESTATE* gamestate, RENDERSTATE* renderstate) {
     // pre-vsync code
 
+    obj_set_pos(cursor, inputstate->cursor_map_x * 16, inputstate->cursor_map_y * 16); // set position
+
     vid_vsync(); // VRAM should be updated during VBlank to prevent screen tearing
     // post-vsync code
     
     // tte_write(gamestate->ypos == 0 && gamestate->xpos == 0 ? "#{es, P:92,68}" : "#{es, P:92,68} moved"); // test
-
-    obj_set_pos(renderstate->metroid, gamestate->xpos, gamestate->ypos); // set position
     oam_copy(oam_mem, obj_buffer, objs); // transfer back buffer to VRAM
 
     return 0;

@@ -18,14 +18,13 @@ typedef enum tileset { // value of enum is a corresponding index in TSDATA
     field = 0
 } tileset;
 
-
 // sprites
+#include "curs.h"
 #include "metr.h"
 #include "test.h"
 
 typedef enum sprite { // value of enum is a corresponding index in SPDATA and SPATTR
-    metr = 0, 
-    test = 1
+    awaw,metr,test
 } sprite;
 
 

@@ -4,8 +4,8 @@
 
 // the input and output of the input() function
 typedef struct INPUTSTATE {
-    int x;
-    int y;
+    int cursor_map_x;
+    int cursor_map_y;
 } INPUTSTATE;
 
 int inputinit(INPUTSTATE* inputstate);
