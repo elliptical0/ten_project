@@ -16,12 +16,12 @@ int main(void)
 	RENDERSTATE* renderstate = malloc(sizeof(RENDERSTATE));
 	int rendererror = renderinit(renderstate);
 
-	while (1) {
+	for(unsigned int frame = 0; true; frame++) { // dont worry abt overflow cause 0000 - 1111 = 0001
 		// TODO: add error handling code (for nonzero output);
-		inputerror = input(inputstate);
+		inputerror = input(frame, inputstate);
 		// switch(inputerror) {
-		gameerror = game(inputstate, gamestate);
-		rendererror = render(inputstate, gamestate, renderstate); // vsync happens within here		
+		gameerror = game(frame, inputstate, gamestate);
+		rendererror = render(frame, inputstate, gamestate, renderstate); // vsync happens within here		
 	}
 
 	free(inputstate); // cleanup memory. probably not necessary but good housekeeping >_<

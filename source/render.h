@@ -14,18 +14,18 @@ typedef struct IMGDATA {
 // tilesets
 #include "tsfield.h"
 
-typedef enum tileset { // value of enum is a corresponding index in TSDATA
+typedef enum TILESET { // value of enum is a corresponding index in TSDATA
     field = 0
-} tileset;
+} TILESET;
 
 // sprites
 #include "curs.h"
 #include "metr.h"
 #include "test.h"
 
-typedef enum sprite { // value of enum is a corresponding index in SPDATA and SPATTR
+typedef enum SPRITE { // value of enum is a corresponding index in SPDATA and SPATTR
     awaw,metr,test
-} sprite;
+} SPRITE;
 
 
 // maps
@@ -34,12 +34,12 @@ typedef enum sprite { // value of enum is a corresponding index in SPDATA and SP
 typedef struct MAPDATA {
     const void *map;
     int maplen;
-    tileset ts;
+    TILESET ts;
 } MAPDATA;
 
-typedef enum map { // value of enum is a corresponding index in MAPSDATA
+typedef enum MAP { // value of enum is a corresponding index in MAPSDATA
     testmap = 0
-} map;
+} MAP;
 
 // environment, ui, and text background#, charblock#, and screenblock#
 #define ENV_BG 0
@@ -55,12 +55,15 @@ typedef enum map { // value of enum is a corresponding index in MAPSDATA
 #define TEXT_SB 31
 
 // set background control registers
-#define env_bgcnt BG_PRIO(0) | BG_CBB(ENV_CB) | BG_4BPP | BG_SBB(ENV_SB) | BG_SIZE(0)
+#define env_bgcnt BG_PRIO(2) | BG_CBB(ENV_CB) | BG_4BPP | BG_SBB(ENV_SB) | BG_SIZE(0)
 #define ui_bgcnt BG_PRIO(1) | BG_CBB(UI_CB) | BG_4BPP | BG_SBB(UI_SB) | BG_SIZE(0)
-#define text_bgcnt BG_PRIO(2) | BG_CBB(TEXT_CB) | BG_SBB(TEXT_SB) | BG_SIZE(0)
+#define text_bgcnt BG_PRIO(0) | BG_CBB(TEXT_CB) | BG_SBB(TEXT_SB) | BG_SIZE(0)
 
 // set display control register
 #define dcnt DCNT_MODE0 | DCNT_BG0 | DCNT_BG2 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D
+
+// animation properties
+#define CURS_SPD (16/CURSOR_ANIM_FRAMES) // cursor speed, pixels per frame
 
 //#include "input.h"
 #include "game.h"
@@ -74,4 +77,4 @@ typedef struct RENDERSTATE {
 
 int renderinit(RENDERSTATE* renderstate);
 
-int render(INPUTSTATE* inputstate, GAMESTATE* gamestate, RENDERSTATE* renderstate);
+int render(unsigned int frame, INPUTSTATE* inputstate, GAMESTATE* gamestate, RENDERSTATE* renderstate);

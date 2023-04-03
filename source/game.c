@@ -8,7 +8,7 @@ int gameinit(GAMESTATE* gamestate) {
 }
 
 // @return error code, or 0 if there are no errors.
-int game(INPUTSTATE* inputstate, GAMESTATE* gamestate) {
+int game(unsigned int frame, INPUTSTATE* inputstate, GAMESTATE* gamestate) {
     //gamestate->xpos = RANGE(gamestate->xpos + inputstate->x, 0, 176); // TODO: replace magic number
     //gamestate->ypos = RANGE(gamestate->ypos + inputstate->y, 0, 96); // TODO: replace magic number
     return 0;

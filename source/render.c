@@ -28,7 +28,7 @@ OBJ_ATTR *cursor;
 /**
  * loads the tileset into memory
 */
-void loadTileset(tileset ts) {
+void loadTileset(TILESET ts) {
     memcpy32(&tile_mem[ENV_CB][0], TSDATA[ts].tiles, TSDATA[ts].tileslen / 4);
     memcpy32(&pal_bg_mem[0], TSDATA[ts].pal, TSDATA[ts].pallen / 4);
 }
@@ -36,7 +36,7 @@ void loadTileset(tileset ts) {
 /**
  * loads the map into memory
 */
-void loadMap(map m) {
+void loadMap(MAP m) {
     memcpy32(&se_mem[ENV_SB], MAPSDATA[m].map, MAPSDATA[m].maplen / 4);
     loadTileset(MAPSDATA[m].ts);
 }
@@ -45,7 +45,7 @@ void loadMap(map m) {
  * loads the sprite into memory
  * @return the OBJ_ATTR for the sprite (should it return the index in obj_buffer instead? hmmm,,,)
 */
-OBJ_ATTR* loadSprite(enum sprite s) {
+OBJ_ATTR* loadSprite(enum SPRITE s) {
     memcpy32(&tile_mem[4][spritememindex], SPDATA[s].tiles, SPDATA[s].tileslen / 4);
     memcpy32(&pal_obj_mem[pals * 16], SPDATA[s].pal, 8);
     OBJ_ATTR *out = &obj_buffer[objs];
@@ -99,10 +99,33 @@ int renderinit(RENDERSTATE* renderstate) {
     return 0;
 }
 
-int render(INPUTSTATE* inputstate, GAMESTATE* gamestate, RENDERSTATE* renderstate) {
+int render(unsigned int frame, INPUTSTATE* inputstate, GAMESTATE* gamestate, RENDERSTATE* renderstate) { // TODO: might not need frame parameter
     // pre-vsync code
 
-    obj_set_pos(cursor, inputstate->cursor_map_x * 16, inputstate->cursor_map_y * 16); // set position
+    // cursor animation
+    switch(inputstate->cursor_anim) {
+        case UP:
+            obj_set_pos(cursor, inputstate->cursor_map_x * 16, inputstate->cursor_map_y * 16 + inputstate->cursor_anim_frame * CURS_SPD);
+            break;
+        case DOWN:
+            obj_set_pos(cursor, inputstate->cursor_map_x * 16, inputstate->cursor_map_y * 16 - inputstate->cursor_anim_frame * CURS_SPD);
+            break;
+        case LEFT:
+            obj_set_pos(cursor, inputstate->cursor_map_x * 16 + inputstate->cursor_anim_frame * CURS_SPD, inputstate->cursor_map_y * 16);
+            break;
+        case RIGHT:
+            obj_set_pos(cursor, inputstate->cursor_map_x * 16 - inputstate->cursor_anim_frame * CURS_SPD, inputstate->cursor_map_y * 16);
+            break;
+        default:
+            obj_set_pos(cursor, inputstate->cursor_map_x * 16, inputstate->cursor_map_y * 16);
+    }
+
+    // debug
+    tte_erase_screen();
+    tte_set_pos(92, 68);
+    for(int i = 0; i < inputstate->cursor_anim_frame; i++) {
+        tte_write("o");
+    }
 
     vid_vsync(); // VRAM should be updated during VBlank to prevent screen tearing
     // post-vsync code
