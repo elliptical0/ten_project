@@ -1,9 +1,9 @@
 
-//{{BLOCK(metr)
+//{{BLOCK(test)
 
 //======================================================================
 //
-//	metr, 64x64@4, 
+//	test, 64x64@4, 
 //	+ palette 256 entries, not compressed
 //	+ 64 tiles not compressed
 //	Total size: 512 + 2048 = 2560
@@ -14,15 +14,15 @@
 //
 //======================================================================
 
-#ifndef GRIT_METR_H
-#define GRIT_METR_H
+#ifndef GRIT_TEST_H
+#define GRIT_TEST_H
 
-#define metrTilesLen 2048
-extern const unsigned int metrTiles[512];
+#define testTilesLen 2048
+extern const unsigned int testTiles[512];
 
-#define metrPalLen 512
-extern const unsigned short metrPal[256];
+#define testPalLen 512
+extern const unsigned short testPal[256];
 
-#endif // GRIT_METR_H
+#endif // GRIT_TEST_H
 
-//}}BLOCK(metr)
+//}}BLOCK(test)
