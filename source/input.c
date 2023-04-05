@@ -34,8 +34,9 @@ int inputinit(INPUTSTATE* inputstate) {
         inputbuffer[i] = NONE;
     }
 
-    inputstate->cursor_anim = NONE;
-    inputstate->cursor_anim_frame = 0;
+    inputstate->input = NONE;
+    inputstate->mapmode = true;
+    inputstate->anim_frame = 0;
 
     inputstate->cursor_map_x = 0;
     inputstate->cursor_map_y = 0;
@@ -54,31 +55,37 @@ int input(unsigned int frame, INPUTSTATE* inputstate) {
         }
     }
 
-    if(inputstate->cursor_anim_frame == 0) {
-        inputstate->cursor_anim = dequeue();
-        if(inputstate->cursor_anim != NONE) {
-            switch(inputstate->cursor_anim) {
-                case UP:
-                    inputstate->cursor_map_y = RANGE(inputstate->cursor_map_y - 1, 0, 9);
-                    inputstate->cursor_anim_frame = CURSOR_ANIM_FRAMES - 1;
-                    break;
-                case DOWN:
-                    inputstate->cursor_map_y = RANGE(inputstate->cursor_map_y + 1, 0, 9);
-                    inputstate->cursor_anim_frame = CURSOR_ANIM_FRAMES - 1;
-                    break;
-                case LEFT:
-                    inputstate->cursor_map_x = RANGE(inputstate->cursor_map_x - 1, 0, 14);
-                    inputstate->cursor_anim_frame = CURSOR_ANIM_FRAMES - 1;
-                    break;
-                case RIGHT:
-                    inputstate->cursor_map_x = RANGE(inputstate->cursor_map_x + 1, 0, 14);
-                    inputstate->cursor_anim_frame = CURSOR_ANIM_FRAMES - 1;
-                    break;
-                default:
+    if(inputstate->anim_frame == 0) {
+        inputstate->input = dequeue();
+        if(inputstate->input != NONE) {
+            if(inputstate->mapmode) {
+                switch(inputstate->input) {
+                    case UP:
+                        inputstate->cursor_map_y = RANGE(inputstate->cursor_map_y - 1, 0, 9);
+                        inputstate->anim_frame = CURSOR_ANIM_FRAMES - 1;
+                        break;
+                    case DOWN:
+                        inputstate->cursor_map_y = RANGE(inputstate->cursor_map_y + 1, 0, 9);
+                        inputstate->anim_frame = CURSOR_ANIM_FRAMES - 1;
+                        break;
+                    case LEFT:
+                        inputstate->cursor_map_x = RANGE(inputstate->cursor_map_x - 1, 0, 14);
+                        inputstate->anim_frame = CURSOR_ANIM_FRAMES - 1;
+                        break;
+                    case RIGHT:
+                        inputstate->cursor_map_x = RANGE(inputstate->cursor_map_x + 1, 0, 14);
+                        inputstate->anim_frame = CURSOR_ANIM_FRAMES - 1;
+                        break;
+                    default:
+                }
+            } else {
+                switch(inputstate->input) {
+                    default:
+                }
             }
         }
     } else {
-        inputstate->cursor_anim_frame--;
+        inputstate->anim_frame--;
     }
     return 0;
 }

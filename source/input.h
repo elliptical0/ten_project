@@ -23,8 +23,9 @@ typedef enum INPUT { // value is the number of the bit in REG_KEYINPUT
 
 // the input and output of the input() function
 typedef struct INPUTSTATE {
-    INPUT cursor_anim;
-    uint cursor_anim_frame; // decrementing frame counter for cursor animation
+    INPUT input;
+    bool mapmode;
+    uint anim_frame; // decrementing frame counter for cursor animation
 
     int cursor_map_x;
     int cursor_map_y;

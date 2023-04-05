@@ -5,6 +5,7 @@
         "test.h": "c",
         "game.h": "c",
         "tonc.h": "c",
-        "tonc_memmap.h": "c"
+        "tonc_memmap.h": "c",
+        "metr.h": "c"
     }
 }
