@@ -1,1 +1,0 @@
-tsfield.o: tsfield.s

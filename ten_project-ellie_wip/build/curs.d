@@ -1,1 +1,0 @@
-curs.o: curs.s
