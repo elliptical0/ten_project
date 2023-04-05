@@ -1,0 +1,1 @@
+white.o: white.s

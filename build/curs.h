@@ -1,12 +1,12 @@
 
-//{{BLOCK(metr)
+//{{BLOCK(curs)
 
 //======================================================================
 //
-//	metr, 64x64@4, 
+//	curs, 16x16@4, 
 //	+ palette 256 entries, not compressed
-//	+ 64 tiles not compressed
-//	Total size: 512 + 2048 = 2560
+//	+ 4 tiles not compressed
+//	Total size: 512 + 128 = 640
 //
 //	Time-stamp: 2023-04-05, 15:40:33
 //	Exported by Cearn's GBA Image Transmogrifier, v0.9.2
@@ -14,15 +14,15 @@
 //
 //======================================================================
 
-#ifndef GRIT_METR_H
-#define GRIT_METR_H
+#ifndef GRIT_CURS_H
+#define GRIT_CURS_H
 
-#define metrTilesLen 2048
-extern const unsigned int metrTiles[512];
+#define cursTilesLen 128
+extern const unsigned int cursTiles[32];
 
-#define metrPalLen 512
-extern const unsigned short metrPal[256];
+#define cursPalLen 512
+extern const unsigned short cursPal[256];
 
-#endif // GRIT_METR_H
+#endif // GRIT_CURS_H
 
-//}}BLOCK(metr)
+//}}BLOCK(curs)
