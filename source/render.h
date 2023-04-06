@@ -23,29 +23,17 @@ typedef enum TILESET { // value of enum is a corresponding index in TSDATA
 extern const IMGDATA TSDATA[];
 
 
-// sprites ----------------------------------------------------
-#include "curs.h"
-#include "metr.h"
-#include "test.h"
-
-typedef enum SPRITE { // value of enum is a corresponding index in SPDATA and SPATTR
-    awaw,metr,test
-} SPRITE;
-extern const IMGDATA SPDATA[];
-extern const u16 SPATTR[][3];
-
-
 // maps -------------------------------------------------------
-#include "map0.h"
+#include "mpfield.h"
 
 typedef struct MAPDATA {
     const void *map;
     int maplen;
     TILESET ts;
 } MAPDATA;
-extern const MAPDATA MAPSDATA[];
+extern const MAPDATA MPDATA[];
 typedef enum MAP { // value of enum is a corresponding index in MAPSDATA
-    testmap = 0
+    mpfield = 0
 } MAP;
 
 
@@ -63,10 +51,23 @@ typedef enum UI { // value of enum is a corresponding index in UIDATA
 extern const UIELEMENT UIDATA[];
 
 
+// sprites ----------------------------------------------------
+#include "curs.h"
+#include "metr.h"
+#include "test.h"
+
+typedef enum SPRITE { // value of enum is a corresponding index in SPDATA and SPATTR
+    awaw,metr,test
+} SPRITE;
+extern const IMGDATA SPDATA[];
+extern const u16 SPATTR[][3];
+
+
 // environment, ui, and text background#, charblock#, screenblock#, pal#
 #define ENV_BG 0
 #define ENV_CB 2
 #define ENV_SB 11
+#define ENV_PAL 0
 
 #define UI_BG 2
 #define UI_CB 3

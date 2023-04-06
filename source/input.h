@@ -19,7 +19,7 @@ typedef enum INPUT { // value is the number of the bit in REG_KEYINPUT
 #define INPUTBUFFER_SIZE 8 // MUST be a power of 2 for fast modulo. will have 1 empty space
 #define INPUTBUFFER_MODULO(n) ((n) & (INPUTBUFFER_SIZE - 1))
 
-#define CURSOR_ANIM_FRAMES 16 // MUST be a power of 2
+#define CURSOR_ANIM_FRAMES 4 // MUST be a power of 2
 
 // the input and output of the input() function
 typedef struct INPUTSTATE {

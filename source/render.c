@@ -2,7 +2,13 @@
 
 const IMGDATA TSDATA[] = { // tileset data
     {tsuiTiles, tsuiTilesLen, tsuiPal, tsuiPalLen},
-    {tsfieldTiles, tsfieldTilesLen, tsfieldPal, tsfieldPalLen}
+    {mpfieldTiles, mpfieldTilesLen, mpfieldPal, mpfieldPalLen}
+};
+const MAPDATA MPDATA[] = { // map data
+    {mpfieldMap, mpfieldMapLen, tsfield}
+};
+const UIELEMENT UIDATA[] = {
+    {ui_act, ui_act_x, ui_act_y}
 };
 const IMGDATA SPDATA[] = { // sprite data
     {cursTiles, cursTilesLen, cursPal, cursPalLen},
@@ -13,12 +19,6 @@ const u16 SPATTR[][3] = { // sprite attributes. a0, a1, a2 WITHOUT PALBANK OR TI
     {ATTR0_SQUARE || ATTR0_4BPP, ATTR1_SIZE_16, ATTR2_PRIO(0)},
     {ATTR0_SQUARE || ATTR0_4BPP, ATTR1_SIZE_64, ATTR2_PRIO(0)},
     {ATTR0_SQUARE || ATTR0_4BPP, ATTR1_SIZE_64, ATTR2_PRIO(0)}
-};
-const MAPDATA MAPSDATA[] = { // map data
-    {map0, map0Length, tsfield}
-};
-const UIELEMENT UIDATA[] = {
-    {ui_act, ui_act_x, ui_act_y}
 };
 
 int spritememindex = 0;
@@ -41,8 +41,8 @@ void loadTileset(TILESET ts, int cb, int pal) {
  * loads the map into memory
 */
 void loadMap(MAP m) {
-    memcpy32(&se_mem[ENV_SB], MAPSDATA[m].map, MAPSDATA[m].maplen / 4);
-    loadTileset(MAPSDATA[m].ts, ENV_CB, 0);
+    memcpy32(&se_mem[ENV_SB], MPDATA[m].map, MPDATA[m].maplen / 4);
+    loadTileset(MPDATA[m].ts, ENV_CB, ENV_PAL);
 }
 
 /**
@@ -112,7 +112,7 @@ int renderinit(RENDERSTATE* renderstate) {
     REG_BGCNT[ENV_BG] = env_bgcnt;
     REG_BGCNT[UI_BG] = ui_bgcnt;
 
-    loadMap(testmap);
+    loadMap(mpfield);
     loadTileset(tsui, UI_CB, UI_PAL);
         
 
