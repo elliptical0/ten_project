@@ -4,6 +4,8 @@
 #include <tonc_types.h>
 #include <tonc_memmap.h>
 
+#include "game.h"
+
 typedef struct IMGDATA {
     const void *tiles;
     int tileslen;
@@ -14,7 +16,6 @@ typedef struct IMGDATA {
 
 // tilesets ---------------------------------------------------
 #include "tsui.h"
-#include "tsfield.h"
 
 typedef enum TILESET { // value of enum is a corresponding index in TSDATA
     tsui = 0,
@@ -32,9 +33,6 @@ typedef struct MAPDATA {
     TILESET ts;
 } MAPDATA;
 extern const MAPDATA MPDATA[];
-typedef enum MAP { // value of enum is a corresponding index in MAPSDATA
-    mpfield = 0
-} MAP;
 
 
 // ui ---------------------------------------------------------
@@ -44,10 +42,11 @@ typedef struct UIELEMENT {
     const unsigned short *ui;
     int width;
     int height;
+    int x;
+    int y;
+    const char **text;
+    int lines;
 } UIELEMENT;
-typedef enum UI { // value of enum is a corresponding index in UIDATA
-    act = 0
-} UI;
 extern const UIELEMENT UIDATA[];
 
 
@@ -56,9 +55,6 @@ extern const UIELEMENT UIDATA[];
 #include "metr.h"
 #include "test.h"
 
-typedef enum SPRITE { // value of enum is a corresponding index in SPDATA and SPATTR
-    awaw,metr,test
-} SPRITE;
 extern const IMGDATA SPDATA[];
 extern const u16 SPATTR[][3];
 

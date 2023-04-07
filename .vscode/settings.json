@@ -6,6 +6,8 @@
         "game.h": "c",
         "tonc.h": "c",
         "tonc_memmap.h": "c",
-        "metr.h": "c"
+        "metr.h": "c",
+        "ui.h": "c",
+        "input.h": "c"
     }
 }

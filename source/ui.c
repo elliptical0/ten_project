@@ -15,7 +15,7 @@
  * 9: bottom-right corner
  */
 
-// sizes of UI elements MUST HAVE EVEN WIDTH AND HEIGHT!!! because of memcpy16
+// sizes of UI elements MUST HAVE EVEN WIDTH AND HEIGHT!!! because of memcpy16 (i think)
 
 const unsigned short ui_act[24] = {
     0xe002,0xe003,0xe003,0xe004,
@@ -24,4 +24,9 @@ const unsigned short ui_act[24] = {
     0xe005,0xe001,0xe001,0xe006,
     0xe005,0xe001,0xe001,0xe006,
     0xe007,0xe008,0xe008,0xe009
+};
+const char *ui_act_text[3] = {
+    "Fight",
+    "Item",
+    "Wait"
 };
