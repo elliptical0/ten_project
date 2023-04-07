@@ -4,6 +4,8 @@
 #include <tonc_types.h>
 #include <tonc_memmap.h>
 
+#include "game.h"
+
 typedef struct IMGDATA {
     const void *tiles;
     int tileslen;
@@ -11,56 +13,79 @@ typedef struct IMGDATA {
     int pallen;
 } IMGDATA;
 
-// tilesets
-#include "tsfield.h"
 
-typedef enum tileset { // value of enum is a corresponding index in TSDATA
-    field = 0
-} tileset;
+// tilesets ---------------------------------------------------
+#include "tsui.h"
 
-// sprites
-#include "curs.h"
-#include "metr.h"
-#include "test.h"
-
-typedef enum sprite { // value of enum is a corresponding index in SPDATA and SPATTR
-    awaw,metr,test
-} sprite;
+typedef enum TILESET { // value of enum is a corresponding index in TSDATA
+    tsui = 0,
+    tsfield = 1,
+    tsMainMenu = 2
+} TILESET;
+extern const IMGDATA TSDATA[];
 
 
-// maps
-#include "map0.h"
+// maps -------------------------------------------------------
+#include "mpfield.h"
+#include "mpMainMenu.h"
 
 typedef struct MAPDATA {
     const void *map;
     int maplen;
-    tileset ts;
+    TILESET ts;
 } MAPDATA;
+extern const MAPDATA MPDATA[];
 
-typedef enum map { // value of enum is a corresponding index in MAPSDATA
-    testmap = 0
-} map;
 
-// environment, ui, and text background#, charblock#, and screenblock#
+// ui ---------------------------------------------------------
+#include "ui.h"
+
+typedef struct UIELEMENT {
+    const unsigned short *ui;
+    int width;
+    int height;
+    int x;
+    int y;
+    const char **text;
+    int lines;
+} UIELEMENT;
+extern const UIELEMENT UIDATA[];
+
+
+// sprites ----------------------------------------------------
+#include "curs.h"
+#include "metr.h"
+#include "test.h"
+
+extern const IMGDATA SPDATA[];
+extern const u16 SPATTR[][3];
+
+
+// environment, ui, and text background#, charblock#, screenblock#, pal#
 #define ENV_BG 0
-#define ENV_CB 0
-#define ENV_SB 12
+#define ENV_CB 2
+#define ENV_SB 11
+#define ENV_PAL 0
 
 #define UI_BG 2
 #define UI_CB 3
-#define UI_SB 30
+#define UI_SB 12
+#define UI_PAL 14
 
 #define TEXT_BG 3
-#define TEXT_CB 2
-#define TEXT_SB 31
+#define TEXT_CB 0
+#define TEXT_SB 10
 
 // set background control registers
-#define env_bgcnt BG_PRIO(0) | BG_CBB(ENV_CB) | BG_4BPP | BG_SBB(ENV_SB) | BG_SIZE(0)
-#define ui_bgcnt BG_PRIO(1) | BG_CBB(UI_CB) | BG_4BPP | BG_SBB(UI_SB) | BG_SIZE(0)
-#define text_bgcnt BG_PRIO(2) | BG_CBB(TEXT_CB) | BG_SBB(TEXT_SB) | BG_SIZE(0)
+#define env_bgcnt BG_PRIO(3) | BG_CBB(ENV_CB) | BG_4BPP | BG_SBB(ENV_SB) | BG_SIZE(0)
+#define ui_bgcnt BG_PRIO(2) | BG_CBB(UI_CB) | BG_4BPP | BG_SBB(UI_SB) | BG_SIZE(0)
+#define text_bgcnt BG_PRIO(0) | BG_CBB(TEXT_CB) | BG_SBB(TEXT_SB) | BG_SIZE(0)
 
 // set display control register
-#define dcnt DCNT_MODE0 | DCNT_BG0 | DCNT_BG2 | DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D
+#define dcnt DCNT_MODE0 | DCNT_BG0 | DCNT_BG2| DCNT_BG3 | DCNT_OBJ | DCNT_OBJ_1D
+
+// animation properties
+#define CURS_SPD (16/CURSOR_ANIM_FRAMES) // cursor speed, pixels per frame
 
 //#include "input.h"
 #include "game.h"
@@ -74,4 +99,4 @@ typedef struct RENDERSTATE {
 
 int renderinit(RENDERSTATE* renderstate);
 
-int render(INPUTSTATE* inputstate, GAMESTATE* gamestate, RENDERSTATE* renderstate, int s);
+int render(unsigned int frame, INPUTSTATE* inputstate, GAMESTATE* gamestate, RENDERSTATE* renderstate);

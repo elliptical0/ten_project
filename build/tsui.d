@@ -1,0 +1,1 @@
+tsui.o: tsui.s
