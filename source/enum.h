@@ -13,6 +13,7 @@ typedef enum MAP { // value of enum is a corresponding index in MAPSDATA (render
 } MAP;
 
 typedef enum UI { // value of enum is a corresponding index in MENUS and UIDATA (render.c)
-    act = 0,
+    uiact = 0,
+    uifight = 1,
     NOUI = -1
 } UI;

@@ -1,8 +1,10 @@
 #pragma once
 
+#include <stdlib.h>
+
 #include "enum.h"
 
-#define ITEM_NAME_SIZE_BYTES 9
+#define ITEM_NAME_SIZE_BYTES 13
 #define UNIT_NAME_SIZE_BYTES 9
 
 #define MAX_PLR_UNITS 8
@@ -21,11 +23,11 @@ typedef enum SKILLS {
 } SKILLS;
 
 typedef enum ITEMS { // corresponds to an entry in ITEMDATA.
-    noitem = 0,
-    iron_sword = 1,
-    steel_sword = 2,
-    silver_sword = 3,
-    rapier = 4
+    noitem = -1,
+    iron_sword = 0,
+    steel_sword = 1,
+    silver_sword = 2,
+    rapier = 3
 } ITEMS;
 typedef enum ITEM_TYPE {
     weapon = 0,
@@ -54,13 +56,6 @@ typedef struct UNIT_ATTR { // GBA storage has an 8-bit bus, so bytes are used!!
     char inventory[INVENTORY_SPACES];
 } UNIT_ATTR;
 //} __attribute__((__packed__)) UNIT_ATTR;
-
-typedef struct UNIT_STATUS {
-    int hp;
-    int weapon; // inventory index
-    int equipment; // inventory index
-    UNIT_ATTR *unit_attr;
-} UNIT_STATUS;
 
 extern const UNIT_ATTR UNITDATA_PLR[];
 extern const UNIT_ATTR UNITDATA_ENEMY[];

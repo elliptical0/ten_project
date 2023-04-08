@@ -11,7 +11,7 @@ typedef struct ENEMY {
     unsigned char unitdata_index;
     unsigned char x;
     unsigned char y;
-} __attribute__((__packed__)) ENEMY;
+} ENEMY;
 
 extern const char MPENEMYDATA_LEN[];
 extern const ENEMY *MPENEMYDATA[];

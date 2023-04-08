@@ -8,6 +8,7 @@
         "tonc_memmap.h": "c",
         "metr.h": "c",
         "ui.h": "c",
-        "input.h": "c"
+        "input.h": "c",
+        "map_data.h": "c"
     }
 }

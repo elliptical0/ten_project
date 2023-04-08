@@ -10,13 +10,14 @@ const MAPDATA MPDATA[] = { // map data
     {mpMainMenuMap, mpMainMenuMapLen, tsmainmenu}
 };
 const UIELEMENT UIDATA[] = {
-    {ui_act, ui_act_width, ui_act_height, ui_act_x, ui_act_y, ui_act_text, ui_act_lines}
+    {ui_act, ui_act_width, ui_act_height, ui_act_x, ui_act_y, ui_act_text, ui_act_lines},
+    {ui_fight, ui_fight_width, ui_fight_height, ui_fight_x, ui_fight_y, NULL, 0}
 };
 const IMGDATA SPDATA[] = { // sprite data
     {cursTiles, cursTilesLen, cursPal, cursPalLen},
     {metrTiles, metrTilesLen, metrPal, metrPalLen},
     {testTiles, testTilesLen, testPal, testPalLen},
-    {chswordTiles, chswordTilesLen, chswordPal, chswordPalLen}
+    {chswordTiles, chswordTilesLen, NULL, 0}
 };
 const u16 SPATTR[][3] = { // sprite attributes. a0, a1, a2 WITHOUT PALBANK OR TILE INDEX!!!
     {ATTR0_SQUARE || ATTR0_4BPP, ATTR1_SIZE_16, ATTR2_PRIO(0)},
@@ -41,6 +42,7 @@ int cursor_menu_y;
 
 // background variables
 UI loaded_menu = NOUI;
+int loaded_forecast;
 MAP loaded_map = -1;
 
 /**
@@ -101,8 +103,11 @@ void loadMap(GAMESTATE* gs) {
     pals = 0;
     memcpy32(&se_mem[ENV_SB], MPDATA[gs->map].map, MPDATA[gs->map].maplen / 4);
     loadTileset(MPDATA[gs->map].ts, ENV_CB, ENV_PAL);
-    memcpy32(&pal_obj_mem[PLR_PAL1 * 16], SPDATA[chsword].pal, 8); // load player unit palette #1
-    memcpy32(&pal_obj_mem[ENEMY_PAL1 * 16], SPDATA[chsword].pal, 8); // load enemy unit palette #1
+
+    memcpy32(&pal_obj_mem[PLR_PAL1 * 16], palplr1Pal, 8); // load player unit palette #1
+    memcpy32(&pal_obj_mem[PLR_PAL2 * 16], palplr2Pal, 8); // load player unit palette #2
+    memcpy32(&pal_obj_mem[PLR_PAL3 * 16], palplr3Pal, 8); // load player unit palette #3
+    memcpy32(&pal_obj_mem[ENEMY_PAL1 * 16], palenemy1Pal, 8); // load enemy unit palette #1
 
     if(gs->map != mpmainmenu) {
         // load cursor
@@ -110,16 +115,71 @@ void loadMap(GAMESTATE* gs) {
         cursor = loadSprite(awaw, 0, 0);
         obj_set_pos(cursor, 0, 0);
 
-        // load player unit sprites
+        // load player and enemy unit sprites
         for(int i = 0; i < MAX_PLR_UNITS && gs->units_plr[i].hp != 0; i++) {
-            obj_set_pos(loadSprite(gs->units_plr[i].unit_attr->sprite, 1, i), 0, 0);
+            loadSprite(gs->units_plr[i].unit_attr->sprite, 1, i);
         }
-        for(int i = 0; i < MAX_ENEMY_UNITS && i < MPENEMYDATA_LEN[i]; i++) {
-            obj_set_pos(loadSprite(gs->units_enemy[i].unit_attr->sprite, 2, i), 0, 0);
+        for(int i = 0; i < MAX_ENEMY_UNITS && i < MPENEMYDATA_LEN[gs->map]; i++) {
+            loadSprite(gs->units_enemy[i].unit_attr->sprite, 2, i);
         }
-
-        // load enemy unit sprites
     }
+}
+
+void updateForecast(GAMESTATE* gs, bool flip_x, bool flip_y, bool erase) {
+    int bg_x = flip_x ? UIDATA[uifight].x : 30 - UIDATA[uifight].x - UIDATA[uifight].width;
+    int bg_y = flip_y ? UIDATA[uifight].y : 20 - UIDATA[uifight].y - UIDATA[uifight].height;
+
+    if(erase) {
+        tte_erase_rect(bg_x * 8, bg_y * 8, bg_x * 8 + UIDATA[uifight].width * 8, bg_y * 8 + UIDATA[uifight].height * 8);
+    }
+
+    tte_set_pos((bg_x * 8) + 4, (bg_y * 8) + 2);
+    tte_write(gs->forecast_attacker_name);
+    tte_set_pos((bg_x * 8) + 4, (bg_y * 8) + 12);
+    tte_write(gs->forecast_attacker_weapon);
+    tte_set_pos((bg_x * 8) + 4, (bg_y * 8) + 56);
+    tte_write(gs->forecast_defender_name);
+    tte_set_pos((bg_x * 8) + 4, (bg_y * 8) + 66);
+    tte_write(gs->forecast_defender_weapon);
+
+    char buffer[4];
+
+    tte_set_pos((bg_x * 8) + 4, (bg_y * 8) + 23);
+    sprintf(buffer, "%d", gs->forecast_defender_hp);
+    tte_write(buffer);
+
+    tte_set_pos((bg_x * 8) + 25, (bg_y * 8) + 23);
+    tte_write("HP");
+
+    tte_set_pos((bg_x * 8) + 42, (bg_y * 8) + 23);
+    sprintf(buffer, "%d", gs->forecast_attacker_hp);
+    tte_write(buffer);
+
+
+    tte_set_pos((bg_x * 8) + 4, (bg_y * 8) + 34);
+    sprintf(buffer, "%d", gs->forecast_defender_damage);
+    tte_write(buffer);
+
+    tte_set_pos((bg_x * 8) + 25, (bg_y * 8) + 34);
+    tte_write("Str");
+
+    tte_set_pos((bg_x * 8) + 42, (bg_y * 8) + 34);
+    sprintf(buffer, "%d", gs->forecast_attacker_damage);
+    tte_write(buffer);
+
+
+    tte_set_pos((bg_x * 8) + 4, (bg_y * 8) + 45);
+    sprintf(buffer, "%d", gs->forecast_defender_chance);
+    tte_write(buffer);
+
+    tte_set_pos((bg_x * 8) + 25, (bg_y * 8) + 45);
+    tte_write("Hit");
+
+    tte_set_pos((bg_x * 8) + 42, (bg_y * 8) + 45);
+    sprintf(buffer, "%d", gs->forecast_attacker_chance);
+    tte_write(buffer);
+
+    loaded_forecast = gs->targetindex;
 }
 
 /**
@@ -128,19 +188,24 @@ void loadMap(GAMESTATE* gs) {
  * @param flip_x moves the ui element from the left side to the right, or vice-versa
  * @param flip_y moves the ui element from the top to the bottom, or vice-versa
 */
-void loadUI(UI ui, bool flip_x, bool flip_y, bool set_cursor) {
+void loadUI(GAMESTATE *gs, UI ui, bool flip_x, bool flip_y, bool set_cursor) {
     int bg_x = flip_x ? UIDATA[ui].x : 30 - UIDATA[ui].x - UIDATA[ui].width;
     int bg_y = flip_y ? UIDATA[ui].y : 20 - UIDATA[ui].y - UIDATA[ui].height;
-    if(ui != NOUI) {
-        for(int y = 0; y < UIDATA[ui].height; y++) { // load each row of tiles
-            for(int x = 0; x < UIDATA[ui].width; x++) {
-                memcpy16(&se_mem[UI_SB][(bg_y + y) * 32 + bg_x], &UIDATA[ui].ui[y * UIDATA[ui].width], UIDATA[ui].width);
+    switch(ui) {
+        case NOUI:
+            break;
+        case uifight:
+            updateForecast(gs, flip_x, flip_y, false);
+        default:
+            for(int y = 0; y < UIDATA[ui].height; y++) { // load each row of tiles
+                for(int x = 0; x < UIDATA[ui].width; x++) {
+                    memcpy16(&se_mem[UI_SB][(bg_y + y) * 32 + bg_x], &UIDATA[ui].ui[y * UIDATA[ui].width], UIDATA[ui].width);
+                }
             }
-        }
-        for(int i = 0; i < UIDATA[ui].lines; i++) {
-            tte_set_pos((bg_x * 8) + 4, (bg_y * 8) + (i * 16) + 2); // MAGIC NUMBER ALERT
-            tte_write(UIDATA[ui].text[i]);
-        }
+            for(int i = 0; i < UIDATA[ui].lines; i++) {
+                tte_set_pos((bg_x * 8) + 4, (bg_y * 8) + (i * 16) + 2); // MAGIC NUMBER ALERT
+                tte_write(UIDATA[ui].text[i]);
+            }
     }
     if(set_cursor) {
         cursor_menu_x = (bg_x - 2) * 8;
@@ -235,8 +300,8 @@ int render(unsigned int frame, INPUTSTATE* is, GAMESTATE* gs, RENDERSTATE* rs) {
     }
 
     if(gs->menu != loaded_menu) {
-        unloadUI(loaded_menu, is->cursor_map_x > 7, is->cursor_map_y > 5);
-        loadUI(gs->menu, is->cursor_map_x > 7, is->cursor_map_y < 5, true);
+        unloadUI(loaded_menu, is->cursor_map_x > 7, is->cursor_map_y < 5);
+        loadUI(gs, gs->menu, is->cursor_map_x > 7, is->cursor_map_y < 5, true);
         loaded_menu = gs->menu;
         if(loaded_menu == NOUI) {
             obj_set_pos(cursor, is->cursor_map_x * 16, is->cursor_map_y * 16);
@@ -244,22 +309,60 @@ int render(unsigned int frame, INPUTSTATE* is, GAMESTATE* gs, RENDERSTATE* rs) {
         } else {
             cursor_setmode(false);
         }
+    } else if(gs->menu == uifight && loaded_forecast != gs->targetindex) {
+        updateForecast(gs, is->cursor_map_x > 7, is->cursor_map_y < 5, true);
     }
 
-    // update cursor sprite
+    // update unit sprites
+    OBJ_ATTR *obj;
+    for(int y = 0; y < 10; y++) {
+        for(int x = 0; x < 15; x++) {
+            if(gs->map_units[y][x] != 0) {
+                obj = &obj_buffer[(gs->map_units[y][x] + 127 - MAX_ENEMY_UNITS - MAX_PLR_UNITS)];
+                //if(gs->map_units[y][x] == 10) {
+                //    char buffer[4];
+                //    sprintf(buffer, "%d", (obj->attr2 & ATTR2_PALBANK_MASK) >> ATTR2_PALBANK_SHIFT);
+                //    tte_write(buffer);
+                //}
+                obj_set_pos(obj, x * 16, y * 16);
+                if(gs->map_units[y][x] <= MAX_PLR_UNITS) {
+                    obj->attr2 = (obj->attr2 & ~ATTR2_PALBANK_MASK) | ATTR2_PALBANK(gs->units_plr[gs->map_units[y][x] - 1].can_act ? PLR_PAL1 : PLR_PAL2); // make sprites that cant act grey
+                }
+            }
+        }
+    }
+    if(gs->selected_unit != 0) {
+        obj = &obj_buffer[gs->selected_unit + 127 - MAX_ENEMY_UNITS - MAX_PLR_UNITS];
+        obj_set_pos(obj, is->cursor_map_x * 16, is->cursor_map_y * 16);
+        obj->attr2 = (obj->attr2 & ~ATTR2_PALBANK_MASK) | ATTR2_PALBANK(((gs->map_units[is->cursor_map_y][is->cursor_map_x] != 0 && gs->map_units[is->cursor_map_y][is->cursor_map_x] != gs->selected_unit) || (*MPTERRAINDATA[gs->map])[is->cursor_map_y][is->cursor_map_x] == impassable) ? PLR_PAL3 : PLR_PAL1); // change palette if tile is impassable
+    }
+
+    // update cursor sprite (will replace unit sprite update for selected unit)
     if(is->mapmode) {
         switch(is->input) {
             case UP:
                 obj_set_pos(cursor, is->cursor_map_x * 16, is->cursor_map_y * 16 + is->anim_frame * CURS_SPD);
+                if(gs->selected_unit != 0) {
+                    obj_set_pos(&obj_buffer[gs->selected_unit + 127 - MAX_ENEMY_UNITS - MAX_PLR_UNITS], is->cursor_map_x * 16, is->cursor_map_y * 16 + is->anim_frame * CURS_SPD);
+                }
                 break;
             case DOWN:
                 obj_set_pos(cursor, is->cursor_map_x * 16, is->cursor_map_y * 16 - is->anim_frame * CURS_SPD);
+                if(gs->selected_unit != 0) {
+                    obj_set_pos(&obj_buffer[gs->selected_unit + 127 - MAX_ENEMY_UNITS - MAX_PLR_UNITS], is->cursor_map_x * 16, is->cursor_map_y * 16 - is->anim_frame * CURS_SPD);
+                }
                 break;
             case LEFT:
                 obj_set_pos(cursor, is->cursor_map_x * 16 + is->anim_frame * CURS_SPD, is->cursor_map_y * 16);
+                if(gs->selected_unit != 0) {
+                    obj_set_pos(&obj_buffer[gs->selected_unit + 127 - MAX_ENEMY_UNITS - MAX_PLR_UNITS], is->cursor_map_x * 16 + is->anim_frame * CURS_SPD, is->cursor_map_y * 16);
+                }
                 break;
             case RIGHT:
                 obj_set_pos(cursor, is->cursor_map_x * 16 - is->anim_frame * CURS_SPD, is->cursor_map_y * 16);
+                if(gs->selected_unit != 0) {
+                    obj_set_pos(&obj_buffer[gs->selected_unit + 127 - MAX_ENEMY_UNITS - MAX_PLR_UNITS], is->cursor_map_x * 16 - is->anim_frame * CURS_SPD, is->cursor_map_y * 16);
+                }
                 break;
             default:
         }
@@ -272,15 +375,6 @@ int render(unsigned int frame, INPUTSTATE* is, GAMESTATE* gs, RENDERSTATE* rs) {
                 obj_set_pos(cursor, cursor_menu_x, cursor_menu_y + is->cursor_menu_pos * 16 - is->anim_frame * CURS_SPD);
                 break;
             default:
-        }
-    }
-
-    // update unit sprites
-    for(int y = 0; y < 10; y++) {
-        for(int x = 0; x < 15; x++) {
-            if(gs->map_units[y][x] != 0) {
-                obj_set_pos(&obj_buffer[(gs->map_units[y][x] + 127 - MAX_ENEMY_UNITS - MAX_PLR_UNITS)], x * 16, y * 16);
-            }
         }
     }
 
@@ -299,7 +393,8 @@ int render(unsigned int frame, INPUTSTATE* is, GAMESTATE* gs, RENDERSTATE* rs) {
     // post-vsync code
     
     // tte_write(gamestate->ypos == 0 && gamestate->xpos == 0 ? "#{es, P:92,68}" : "#{es, P:92,68} moved"); // test
-    oam_copy(oam_mem, obj_buffer, 128); // transfer back buffer to VRAM
+    oam_copy(oam_mem, obj_buffer, objs); // transfer back buffer to VRAM
+    oam_copy(oam_mem + 128 - MAX_ENEMY_UNITS - MAX_PLR_UNITS, obj_buffer + 128 - MAX_ENEMY_UNITS - MAX_PLR_UNITS, MAX_ENEMY_UNITS + MAX_PLR_UNITS); // transfer back buffer to VRAM
 
     return 0;
 }

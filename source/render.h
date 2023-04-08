@@ -77,12 +77,18 @@ extern const u16 SPATTR[][3];
 #define TEXT_CB 0
 #define TEXT_SB 10
 
+// shared palettes ---------------------------------------------------
+#include "palplr1.h"
+#include "palplr2.h"
+#include "palplr3.h"
+#include "palenemy1.h"
+
 // player and enemy pal#
 #define PLR_PAL1 10
 #define PLR_PAL2 11
 #define PLR_PAL3 12
 #define ENEMY_PAL1 13
-#define ENEMY_PAL2 14
+#define ENEMY_PAL2 11
 #define ENEMY_PAL3 15
 
 // set background control registers
