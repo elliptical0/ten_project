@@ -21,8 +21,63 @@ void wait() {
     tte_write("wait"); // debug
 }
 
+void save_game(SAVE_DATA *data) {
+    *CART_RAM = *data;
+}
+
+void init_unit_status(GAMESTATE *gs, MAP map) {
+    //char debug_maxhp[2] = {gs->data.units[0].maxhp + 0x30, 0};
+    //tte_write(debug_maxhp);
+    //tte_write(gs->data.units[0].name);
+    memset16(gs->units_plr, 0, (MAX_PLR_UNITS + MAX_ENEMY_UNITS) * (sizeof(UNIT_STATUS) / 2)); // re-initialize
+    for(int i = 0; i < MAX_PLR_UNITS && gs->data.units[i].maxhp != 0; i++) {
+        gs->units_plr[i].unit_attr = gs->data.units + i;
+        //tte_write(gs->units_plr[i].unit_attr->name);
+        gs->units_plr[i].hp = gs->data.units[i].maxhp;
+        gs->units_plr[i].weapon = -1;
+        gs->units_plr[i].equipment = -1;
+        for(int j = INVENTORY_SPACES - 1; j >= 0; j--) { // reverse order: first item takes priority
+            switch(ITEMDATA[gs->data.units[i].inventory[j]].type) {
+                case weapon:
+                    gs->units_plr[i].weapon = j;
+                    break;
+                case equipment:
+                    gs->units_plr[i].equipment = j;
+                    break;
+                default:
+            }
+        }
+        gs->map_units[(*MPPLRDATA)[map][i][1]][(*MPPLRDATA)[map][i][0]] = i + 1;
+    }
+    for(int i = 0; i < MAX_ENEMY_UNITS && i < MPENEMYDATA_LEN[map]; i++) {
+        gs->units_enemy[i].unit_attr = UNITDATA_ENEMY + MPENEMYDATA[map][i].unitdata_index;
+        gs->units_enemy[i].hp = gs->units_enemy[i].unit_attr->maxhp;
+        gs->units_enemy[i].weapon = 0; //gs->units_enemy[i].unit_attr->inventory[0];
+        gs->units_enemy[i].equipment = 1; //gs->units_enemy[i].unit_attr->inventory[1];
+        gs->map_units[MPENEMYDATA[map][i].y][MPENEMYDATA[map][i].x] = i + 1 + MAX_PLR_UNITS;
+    }
+}
+
+void change_map(INPUTSTATE *is, GAMESTATE *gs, MAP map) {
+    gs->map = map;
+    if(map != mpmainmenu) {
+        init_unit_status(gs, map);
+        is->mapmode = true;
+    }
+}
+
 int gameinit(GAMESTATE* gs) {
+    //if(CART_RAM->map == 0) { // initialize save data
+    if(true) {
+        //memcpy16(gs->data.units, UNITDATA_PLR, sizeof(UNIT_ATTR));
+        gs->data.map = mpfield;
+        gs->data.units[0] = UNITDATA_PLR[0]; // sasha
+    } else { // load saved game
+        gs->data = *CART_RAM;
+    }
+
     gs->menu = NOUI;
+    gs->map = mpmainmenu;
 
     return 0;
 }
@@ -58,6 +113,11 @@ int game(unsigned int frame, INPUTSTATE* is, GAMESTATE* gs) {
                     } else if(!(is->cursor_menu_pos < MENUDATA[gs->menu].choices)) {
                         is->cursor_menu_pos = MENUDATA[gs->menu].choices - 1;
                         is->anim_frame = 0;
+                    }
+                    break;
+                case START:
+                    if(gs->map == mpmainmenu) {
+                        change_map(is, gs, gs->data.map);
                     }
                     break;
                 default:

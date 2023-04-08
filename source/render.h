@@ -4,7 +4,7 @@
 #include <tonc_types.h>
 #include <tonc_memmap.h>
 
-#include "game.h"
+#include "enum.h"
 
 typedef struct IMGDATA {
     const void *tiles;
@@ -19,13 +19,15 @@ typedef struct IMGDATA {
 
 typedef enum TILESET { // value of enum is a corresponding index in TSDATA
     tsui = 0,
-    tsfield = 1
+    tsfield = 1,
+    tsmainmenu = 2
 } TILESET;
 extern const IMGDATA TSDATA[];
 
 
 // maps -------------------------------------------------------
 #include "mpfield.h"
+#include "mpMainMenu.h"
 
 typedef struct MAPDATA {
     const void *map;
@@ -54,6 +56,7 @@ extern const UIELEMENT UIDATA[];
 #include "curs.h"
 #include "metr.h"
 #include "test.h"
+#include "chsword.h"
 
 extern const IMGDATA SPDATA[];
 extern const u16 SPATTR[][3];
@@ -74,6 +77,14 @@ extern const u16 SPATTR[][3];
 #define TEXT_CB 0
 #define TEXT_SB 10
 
+// player and enemy pal#
+#define PLR_PAL1 10
+#define PLR_PAL2 11
+#define PLR_PAL3 12
+#define ENEMY_PAL1 13
+#define ENEMY_PAL2 14
+#define ENEMY_PAL3 15
+
 // set background control registers
 #define env_bgcnt BG_PRIO(3) | BG_CBB(ENV_CB) | BG_4BPP | BG_SBB(ENV_SB) | BG_SIZE(0)
 #define ui_bgcnt BG_PRIO(2) | BG_CBB(UI_CB) | BG_4BPP | BG_SBB(UI_SB) | BG_SIZE(0)
@@ -85,7 +96,6 @@ extern const u16 SPATTR[][3];
 // animation properties
 #define CURS_SPD (16/CURSOR_ANIM_FRAMES) // cursor speed, pixels per frame
 
-//#include "input.h"
 #include "game.h"
 
 #define BG_TILE_START = 0;

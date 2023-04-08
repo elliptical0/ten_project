@@ -36,7 +36,7 @@ int inputinit(INPUTSTATE* is) {
 
     is->input = NOINPUT;
     is->input_read = false;
-    is->mapmode = true;
+    is->mapmode = false;
     is->anim_frame = 0;
 
     is->cursor_map_x = 0;

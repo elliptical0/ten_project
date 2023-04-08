@@ -2,10 +2,12 @@
 
 const IMGDATA TSDATA[] = { // tileset data
     {tsuiTiles, tsuiTilesLen, tsuiPal, tsuiPalLen},
-    {mpfieldTiles, mpfieldTilesLen, mpfieldPal, mpfieldPalLen}
+    {mpfieldTiles, mpfieldTilesLen, mpfieldPal, mpfieldPalLen},
+    {mpMainMenuTiles, mpMainMenuTilesLen, mpMainMenuPal, mpMainMenuPalLen}
 };
 const MAPDATA MPDATA[] = { // map data
-    {mpfieldMap, mpfieldMapLen, tsfield}
+    {mpfieldMap, mpfieldMapLen, tsfield},
+    {mpMainMenuMap, mpMainMenuMapLen, tsmainmenu}
 };
 const UIELEMENT UIDATA[] = {
     {ui_act, ui_act_width, ui_act_height, ui_act_x, ui_act_y, ui_act_text, ui_act_lines}
@@ -13,12 +15,14 @@ const UIELEMENT UIDATA[] = {
 const IMGDATA SPDATA[] = { // sprite data
     {cursTiles, cursTilesLen, cursPal, cursPalLen},
     {metrTiles, metrTilesLen, metrPal, metrPalLen},
-    {testTiles, testTilesLen, testPal, testPalLen}
+    {testTiles, testTilesLen, testPal, testPalLen},
+    {chswordTiles, chswordTilesLen, chswordPal, chswordPalLen}
 };
 const u16 SPATTR[][3] = { // sprite attributes. a0, a1, a2 WITHOUT PALBANK OR TILE INDEX!!!
     {ATTR0_SQUARE || ATTR0_4BPP, ATTR1_SIZE_16, ATTR2_PRIO(0)},
     {ATTR0_SQUARE || ATTR0_4BPP, ATTR1_SIZE_64, ATTR2_PRIO(0)},
-    {ATTR0_SQUARE || ATTR0_4BPP, ATTR1_SIZE_64, ATTR2_PRIO(0)}
+    {ATTR0_SQUARE || ATTR0_4BPP, ATTR1_SIZE_64, ATTR2_PRIO(0)},
+    {ATTR0_SQUARE || ATTR0_4BPP, ATTR1_SIZE_16, ATTR2_PRIO(2)},
 };
 
 // vram variables
@@ -34,7 +38,50 @@ int cursormemindex = 0;
 #define cursor_setmode(n) cursor->attr2 = cursormemindex + n ? 0 : 4
 int cursor_menu_x;
 int cursor_menu_y;
+
+// background variables
 UI loaded_menu = NOUI;
+MAP loaded_map = -1;
+
+/**
+ * loads the sprite into memory
+ * @param mode 0: load into current spritememindex (ignore index param)
+ * @param mode 1: load as a player unit (at index param)
+ * @param mode 2: load as an enemy unit (at index param)
+ * @return the OBJ_ATTR for the sprite (should it return the index in obj_buffer instead? hmmm,,,)
+*/
+OBJ_ATTR* loadSprite(enum SPRITE s, int mode, int index) {
+    int memindex, palindex, objindex;
+    switch(mode) {
+        case 1: // player unit
+            memindex = 512 - ((MAX_ENEMY_UNITS + MAX_PLR_UNITS - index) * 4);
+            palindex = PLR_PAL1;
+            objindex = 128 - MAX_ENEMY_UNITS - MAX_PLR_UNITS + index;
+            break;
+        case 2: // enemy unit
+            memindex = 512 - ((MAX_ENEMY_UNITS - index) * 4);
+            palindex = ENEMY_PAL1;
+            objindex = 128 - MAX_ENEMY_UNITS + index;
+            break;
+        default:
+            memindex = spritememindex;
+            palindex = pals;
+            objindex = objs;
+            memcpy32(&pal_obj_mem[palindex * 16], SPDATA[s].pal, 8); // copy palette
+            break;
+    }
+
+    memcpy32(&tile_mem[4][memindex], SPDATA[s].tiles, SPDATA[s].tileslen / 4); // copy tiles
+    OBJ_ATTR *out = &obj_buffer[objindex];
+    obj_set_attr(out, SPATTR[s][0], SPATTR[s][1], SPATTR[s][2] | ATTR2_PALBANK(palindex) | memindex);
+    
+    if(mode == 0) {
+        objs++;
+        spritememindex += SPDATA[s].tileslen / 32;
+        pals++;
+    }
+    return out;
+}
     
 /**
  * loads the tileset into the provided background charblock (ENV_CB or UI_CB) and palette index
@@ -45,11 +92,34 @@ void loadTileset(TILESET ts, int cb, int pal) {
 }
 
 /**
- * loads the map into memory
+ * loads the map into memory and unloads sprites
 */
-void loadMap(MAP m) {
-    memcpy32(&se_mem[ENV_SB], MPDATA[m].map, MPDATA[m].maplen / 4);
-    loadTileset(MPDATA[m].ts, ENV_CB, ENV_PAL);
+void loadMap(GAMESTATE* gs) {
+    //memset16(obj_buffer, 0, 128 * 4); // empty obj_buffer
+    spritememindex = 0;
+    objs = 0;
+    pals = 0;
+    memcpy32(&se_mem[ENV_SB], MPDATA[gs->map].map, MPDATA[gs->map].maplen / 4);
+    loadTileset(MPDATA[gs->map].ts, ENV_CB, ENV_PAL);
+    memcpy32(&pal_obj_mem[PLR_PAL1 * 16], SPDATA[chsword].pal, 8); // load player unit palette #1
+    memcpy32(&pal_obj_mem[ENEMY_PAL1 * 16], SPDATA[chsword].pal, 8); // load enemy unit palette #1
+
+    if(gs->map != mpmainmenu) {
+        // load cursor
+        cursormemindex = spritememindex;
+        cursor = loadSprite(awaw, 0, 0);
+        obj_set_pos(cursor, 0, 0);
+
+        // load player unit sprites
+        for(int i = 0; i < MAX_PLR_UNITS && gs->units_plr[i].hp != 0; i++) {
+            obj_set_pos(loadSprite(gs->units_plr[i].unit_attr->sprite, 1, i), 0, 0);
+        }
+        for(int i = 0; i < MAX_ENEMY_UNITS && i < MPENEMYDATA_LEN[i]; i++) {
+            obj_set_pos(loadSprite(gs->units_enemy[i].unit_attr->sprite, 2, i), 0, 0);
+        }
+
+        // load enemy unit sprites
+    }
 }
 
 /**
@@ -97,24 +167,8 @@ void unloadUI(UI ui, bool flip_x, bool flip_y) {
 }
 
 /**
- * loads the sprite into memory
- * @return the OBJ_ATTR for the sprite (should it return the index in obj_buffer instead? hmmm,,,)
-*/
-OBJ_ATTR* loadSprite(enum SPRITE s) {
-    memcpy32(&tile_mem[4][spritememindex], SPDATA[s].tiles, SPDATA[s].tileslen / 4);
-    memcpy32(&pal_obj_mem[pals * 16], SPDATA[s].pal, 8);
-    OBJ_ATTR *out = &obj_buffer[objs];
-    obj_set_attr(out, SPATTR[s][0], SPATTR[s][1], SPATTR[s][2] | ATTR2_PALBANK(pals) | spritememindex);
-    objs++;
-    spritememindex += SPDATA[s].tileslen / 32;
-    pals++;
-    return out;
-}
-
-/**
  * 
 */
-
 int renderinit(RENDERSTATE* rs) {
     // copied from load_sprite
 
@@ -132,23 +186,14 @@ int renderinit(RENDERSTATE* rs) {
     */
 
     //obj_set_pos(loadSprite(test), 0, 0);
-    
-    // initialize cursor
-    cursormemindex = spritememindex;
-    cursor = loadSprite(awaw);
-    cursor_setmode(true); // set cursor to map mode
-    obj_set_pos(cursor, 0, 0);
 
 	//oam_copy(oam_mem, obj_buffer, 1); // Update first OAM object
-
-
+    
     // set background control registers
     REG_BGCNT[ENV_BG] = env_bgcnt;
     REG_BGCNT[UI_BG] = ui_bgcnt;
 
-    loadMap(mpfield);
-    loadTileset(tsui, UI_CB, UI_PAL);
-        
+    loadTileset(tsui, UI_CB, UI_PAL); // load UI tileset
 
     // copied from main
     irq_init(NULL);
@@ -178,7 +223,18 @@ int render(unsigned int frame, INPUTSTATE* is, GAMESTATE* gs, RENDERSTATE* rs) {
     screen_y = bg_y * 8;
     */
 
-   if(gs->menu != loaded_menu) {
+    if(gs->map != loaded_map) { // change map
+        loadMap(gs);
+        loaded_map = gs->map;
+        switch(loaded_map) {
+            case mpmainmenu:
+                break;
+            default:
+                cursor_setmode(true);
+        }
+    }
+
+    if(gs->menu != loaded_menu) {
         unloadUI(loaded_menu, is->cursor_map_x > 7, is->cursor_map_y > 5);
         loadUI(gs->menu, is->cursor_map_x > 7, is->cursor_map_y < 5, true);
         loaded_menu = gs->menu;
@@ -189,6 +245,8 @@ int render(unsigned int frame, INPUTSTATE* is, GAMESTATE* gs, RENDERSTATE* rs) {
             cursor_setmode(false);
         }
     }
+
+    // update cursor sprite
     if(is->mapmode) {
         switch(is->input) {
             case UP:
@@ -217,6 +275,15 @@ int render(unsigned int frame, INPUTSTATE* is, GAMESTATE* gs, RENDERSTATE* rs) {
         }
     }
 
+    // update unit sprites
+    for(int y = 0; y < 10; y++) {
+        for(int x = 0; x < 15; x++) {
+            if(gs->map_units[y][x] != 0) {
+                obj_set_pos(&obj_buffer[(gs->map_units[y][x] + 127 - MAX_ENEMY_UNITS - MAX_PLR_UNITS)], x * 16, y * 16);
+            }
+        }
+    }
+
     // debug
     
     /*
@@ -232,7 +299,7 @@ int render(unsigned int frame, INPUTSTATE* is, GAMESTATE* gs, RENDERSTATE* rs) {
     // post-vsync code
     
     // tte_write(gamestate->ypos == 0 && gamestate->xpos == 0 ? "#{es, P:92,68}" : "#{es, P:92,68} moved"); // test
-    oam_copy(oam_mem, obj_buffer, objs); // transfer back buffer to VRAM
+    oam_copy(oam_mem, obj_buffer, 128); // transfer back buffer to VRAM
 
     return 0;
 }

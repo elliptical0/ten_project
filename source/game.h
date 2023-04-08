@@ -2,16 +2,13 @@
 
 #include "input.h"
 #include "ui.h"
-#include <tonc.h> // debugging. todo: remove
+#include "map_data.h"
+#include "enum.h"
 
-typedef enum MAP { // value of enum is a corresponding index in MAPSDATA (render.c)
-    mpfield = 0
-} MAP;
+#include <tonc.h> // debug
 
-typedef enum UI { // value of enum is a corresponding index in MENUS and UIDATA (render.c)
-    act = 0,
-    NOUI = -1
-} UI;
+#define CART_RAM ((SAVE_DATA*) 0x0E000000)
+
 typedef struct MENU {
     int choices;
     void ((**choice_functions)());
@@ -19,13 +16,21 @@ typedef struct MENU {
 } MENU;
 extern const MENU MENUDATA[];
 
-typedef enum SPRITE { // value of enum is a corresponding index in SPDATA and SPATTR (render.c)
-    awaw,metr,test
-} SPRITE;
+#include "units.h"
+
+typedef struct SAVE_DATA {
+    MAP map; // if map == 0 (mpfield), save data does not exist!
+    UNIT_ATTR units[MAX_PLR_UNITS];
+} SAVE_DATA;
 
 // the input and output of the gamestate() function
 typedef struct GAMESTATE {
+    SAVE_DATA data;
     UI menu;
+    MAP map;
+    UNIT_STATUS units_plr[MAX_PLR_UNITS];
+    UNIT_STATUS units_enemy[MAX_ENEMY_UNITS];
+    int map_units[10][15]; // 0: empty, 1 — MAX_PLR_UNITS: units_plr, MAX_PLR_UNITS+1 — MAX_ENEMY_UNITS: units_enemy
 } GAMESTATE;
 
 void fight();
