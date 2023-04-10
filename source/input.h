@@ -1,5 +1,6 @@
 #pragma once
 
+#include <tonc.h>
 #include <tonc_input.h> 
 
 typedef enum INPUT { // value is the number of the bit in REG_KEYINPUT
@@ -13,27 +14,29 @@ typedef enum INPUT { // value is the number of the bit in REG_KEYINPUT
     DOWN = 7,
     R = 8,
     L = 9,
-    NONE = 10
+    NOINPUT = -1
 } INPUT;
 
 #define INPUTBUFFER_SIZE 8 // MUST be a power of 2 for fast modulo. will have 1 empty space
 #define INPUTBUFFER_MODULO(n) ((n) & (INPUTBUFFER_SIZE - 1))
 
-#define CURSOR_ANIM_FRAMES 16 // MUST be a power of 2
+#define CURSOR_ANIM_FRAMES 4 // MUST be a power of 2
 
 // the input and output of the input() function
 typedef struct INPUTSTATE {
-    INPUT cursor_anim;
-    uint cursor_anim_frame; // decrementing frame counter for cursor animation
+    INPUT input;
+    bool input_read;
+    uint anim_frame; // decrementing frame counter for cursor animation
 
+    bool mapmode;
     int cursor_map_x;
     int cursor_map_y;
 
-    uint cursor_menu_pos;
+    int cursor_menu_pos; // top to bottom, starting at zero
 } INPUTSTATE;
 
-int queue(INPUT in);
-INPUT dequeue();
+//int queue(INPUT in);
+//INPUT dequeue();
 
 int inputinit(INPUTSTATE* inputstate);
 

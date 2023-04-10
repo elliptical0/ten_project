@@ -25,28 +25,30 @@ INPUT dequeue() {
         inputbuffer_count--;
         return inputbuffer[INPUTBUFFER_MODULO(inputbuffer_front - 1)];
     }
-    return NONE;
+    return NOINPUT;
 }
 // #define peek() inputbuffer[inputbuffer_front]
 
-int inputinit(INPUTSTATE* inputstate) {
+int inputinit(INPUTSTATE* is) {
     for(int i = 0; i < INPUTBUFFER_SIZE; i++) {
-        inputbuffer[i] = NONE;
+        inputbuffer[i] = NOINPUT;
     }
 
-    inputstate->cursor_anim = NONE;
-    inputstate->cursor_anim_frame = 0;
+    is->input = NOINPUT;
+    is->input_read = false;
+    is->mapmode = false;
+    is->anim_frame = 0;
 
-    inputstate->cursor_map_x = 0;
-    inputstate->cursor_map_y = 0;
+    is->cursor_map_x = 0;
+    is->cursor_map_y = 0;
 
-    inputstate->cursor_menu_pos = 0;
+    is->cursor_menu_pos = 0;
     return 0;
 }
 
-int input(unsigned int frame, INPUTSTATE* inputstate) {
+int input(unsigned int frame, INPUTSTATE* is) {
     key_poll();
-    for(INPUT i = A; i < NONE; i++) {
+    for(INPUT i = A; i <= L; i++) {
         if(key_hit(1 << i)) {
             if(queue(i) == 1) {
                 break;
@@ -54,31 +56,46 @@ int input(unsigned int frame, INPUTSTATE* inputstate) {
         }
     }
 
-    if(inputstate->cursor_anim_frame == 0) {
-        inputstate->cursor_anim = dequeue();
-        if(inputstate->cursor_anim != NONE) {
-            switch(inputstate->cursor_anim) {
-                case UP:
-                    inputstate->cursor_map_y = RANGE(inputstate->cursor_map_y - 1, 0, 9);
-                    inputstate->cursor_anim_frame = CURSOR_ANIM_FRAMES - 1;
-                    break;
-                case DOWN:
-                    inputstate->cursor_map_y = RANGE(inputstate->cursor_map_y + 1, 0, 9);
-                    inputstate->cursor_anim_frame = CURSOR_ANIM_FRAMES - 1;
-                    break;
-                case LEFT:
-                    inputstate->cursor_map_x = RANGE(inputstate->cursor_map_x - 1, 0, 14);
-                    inputstate->cursor_anim_frame = CURSOR_ANIM_FRAMES - 1;
-                    break;
-                case RIGHT:
-                    inputstate->cursor_map_x = RANGE(inputstate->cursor_map_x + 1, 0, 14);
-                    inputstate->cursor_anim_frame = CURSOR_ANIM_FRAMES - 1;
-                    break;
-                default:
+    if(is->anim_frame == 0) {
+        is->input = dequeue();
+        if(is->input != NOINPUT) {
+            is->input_read = false;
+            if(is->mapmode) {
+                switch(is->input) {
+                    case UP:
+                        is->cursor_map_y = RANGE(is->cursor_map_y - 1, 0, 9);
+                        is->anim_frame = CURSOR_ANIM_FRAMES - 1;
+                        break;
+                    case DOWN:
+                        is->cursor_map_y = RANGE(is->cursor_map_y + 1, 0, 9);
+                        is->anim_frame = CURSOR_ANIM_FRAMES - 1;
+                        break;
+                    case LEFT:
+                        is->cursor_map_x = RANGE(is->cursor_map_x - 1, 0, 14);
+                        is->anim_frame = CURSOR_ANIM_FRAMES - 1;
+                        break;
+                    case RIGHT:
+                        is->cursor_map_x = RANGE(is->cursor_map_x + 1, 0, 14);
+                        is->anim_frame = CURSOR_ANIM_FRAMES - 1;
+                        break;
+                    default:
+                }
+            } else {
+                switch(is->input) {
+                    case UP:
+                        is->cursor_menu_pos--;
+                        is->anim_frame = CURSOR_ANIM_FRAMES - 1;
+                        break;
+                    case DOWN:
+                        is->cursor_menu_pos++;
+                        is->anim_frame = CURSOR_ANIM_FRAMES - 1;
+                        break;
+                    default:
+                }
             }
         }
     } else {
-        inputstate->cursor_anim_frame--;
+        is->anim_frame--;
     }
     return 0;
 }
