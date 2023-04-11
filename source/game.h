@@ -4,9 +4,12 @@
 #include "ui.h"
 #include "map_data.h"
 #include "enum.h"
+#include "rng.h"
 
 #include <stdio.h>
-#include <tonc.h> // debug
+#include <tonc_tte.h> // debug
+
+#define RANGE(a, x, y) (a < x ? x : (a > y ? y : a))
 
 #define CART_RAM ((SAVE_DATA*) 0x0E000000)
 
@@ -32,6 +35,21 @@ typedef struct UNIT_STATUS {
     UNIT_ATTR *unit_attr;
 } UNIT_STATUS;
 
+typedef struct FORECAST {
+    int attacker_index;
+    //char *attacker_name;
+    char *attacker_weapon;
+    int attacker_hp;
+    int attacker_damage;
+    int attacker_chance;
+    int defender_index;
+    //char *defender_name;
+    char *defender_weapon;
+    int defender_hp;
+    int defender_damage;
+    int defender_chance;
+} FORECAST;
+
 // the input and output of the gamestate() function
 typedef struct GAMESTATE {
     SAVE_DATA data;
@@ -39,26 +57,24 @@ typedef struct GAMESTATE {
 
     MAP map;
     UNIT_STATUS units_plr[MAX_PLR_UNITS];
-    UNIT_STATUS units_enemy[MAX_ENEMY_UNITS];
+    UNIT_STATUS units_enemy[MAX_ENEMY_UNITS]; // right after units_plr, so units_plr[map_units[y][x]] will give the right player *or* enemy unit
     int map_units[10][15]; // 0: empty, 1 — MAX_PLR_UNITS: units_plr, MAX_PLR_UNITS+1 — MAX_ENEMY_UNITS: units_enemy
     
     int selected_unit;
     int selected_unit_map_x;
     int selected_unit_map_y;
+    char map_canmove[10][15]; // 0: cant move to this tile, 1: can move to this tile
+    bool map_canmove_stale; // for rendering
+    char map_threatened[10][15];
+    bool map_threatened_stale;
 
     int targetcount;
     int targetindex;
     int targets[12];
-    char *forecast_attacker_name;
-    char *forecast_attacker_weapon;
-    int forecast_attacker_hp;
-    int forecast_attacker_damage;
-    int forecast_attacker_chance;
-    char *forecast_defender_name;
-    char *forecast_defender_weapon;
-    int forecast_defender_hp;
-    int forecast_defender_damage;
-    int forecast_defender_chance;
+    int target_locations[12][2]; // [i][0] is x, [i][1] is y
+    FORECAST forecast;
+    int attacker_combat_anim; //0: none, 1: hit, 2: miss
+    int defender_combat_anim; //0: none, 1: hit, 2: miss
 } GAMESTATE;
 
 void fight();
@@ -68,6 +84,7 @@ void wait();
 
 void forecast(GAMESTATE *gs, int attacker_index, int cursor_index);
 void get_targets(GAMESTATE *gs, int range, int x, int y);
+void set_map_threatened(GAMESTATE *gs);
 
 int gameinit(GAMESTATE* gamestate);
 

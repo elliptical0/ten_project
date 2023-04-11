@@ -13,7 +13,7 @@
  * 7: bottom-left corner    neutral
  * 8: bottom edge           neutral
  * 9: bottom-right corner   neutral
- *
+ *10: middle                player + enemy
  *11: middle                player
  *12: upper-left corner     player
  *13: upper edge            player

@@ -20,13 +20,14 @@ typedef enum INPUT { // value is the number of the bit in REG_KEYINPUT
 #define INPUTBUFFER_SIZE 8 // MUST be a power of 2 for fast modulo. will have 1 empty space
 #define INPUTBUFFER_MODULO(n) ((n) & (INPUTBUFFER_SIZE - 1))
 
-#define CURSOR_ANIM_FRAMES 4 // MUST be a power of 2
+#define CURSOR_ANIM_FRAMES 4 // MUST be a factor of 16
+#define HIT_ANIM_FRAMES 32 // MUST be a multiple of 4
 
 // the input and output of the input() function
 typedef struct INPUTSTATE {
     INPUT input;
     bool input_read;
-    uint anim_frame; // decrementing frame counter for cursor animation
+    int anim_frame; // decrementing frame counter for animation
 
     bool mapmode;
     int cursor_map_x;
