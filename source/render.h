@@ -22,13 +22,15 @@ typedef struct IMGDATA {
 typedef enum TILESET { // value of enum is a corresponding index in TSDATA
     tsui = 0,
     tsfield = 1,
-    tsmainmenu = 2
+    tsisland = 2,
+    tsmainmenu = 3
 } TILESET;
 extern const IMGDATA TSDATA[];
 
 
 // maps -------------------------------------------------------
 #include "mpfield.h"
+#include "mpisland.h"
 #include "mpMainMenu.h"
 
 typedef struct MAPDATA {

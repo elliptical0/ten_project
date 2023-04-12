@@ -23,11 +23,12 @@ typedef enum SKILLS {
 } SKILLS;
 
 typedef enum ITEMS { // corresponds to an entry in ITEMDATA.
-    noitem = -1,
     iron_sword = 0,
     steel_sword = 1,
     silver_sword = 2,
-    rapier = 3
+    rapier = 3,
+    iron_bow = 4,
+    noitem = -1
 } ITEMS;
 typedef enum ITEM_TYPE {
     weapon = 0,

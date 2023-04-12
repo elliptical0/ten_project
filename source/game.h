@@ -13,6 +13,14 @@
 
 #define CART_RAM ((SAVE_DATA*) 0x0E000000)
 
+// enemy targeting weights
+#define ENEMY_HP_WEIGHT 8000
+#define ENEMY_HIT_WEIGHT 2000
+// enemy movement weights
+#define ENEMY_THREATENING_WEIGHT 128
+#define ENEMY_SAFE_WEIGHT 64
+#define ENEMY_APPROACHING_WEIGHT 32 // should be greater than 25
+
 typedef struct MENU {
     int choices;
     void ((**choice_functions)());
@@ -60,7 +68,7 @@ typedef struct GAMESTATE {
     UNIT_STATUS units_enemy[MAX_ENEMY_UNITS]; // right after units_plr, so units_plr[map_units[y][x]] will give the right player *or* enemy unit
     int map_units[10][15]; // 0: empty, 1 — MAX_PLR_UNITS: units_plr, MAX_PLR_UNITS+1 — MAX_ENEMY_UNITS: units_enemy
     
-    int selected_unit;
+    int selected_unit; // player AND enemy
     int selected_unit_map_x;
     int selected_unit_map_y;
     char map_canmove[10][15]; // 0: cant move to this tile, 1: can move to this tile
@@ -75,6 +83,8 @@ typedef struct GAMESTATE {
     FORECAST forecast;
     int attacker_combat_anim; //0: none, 1: hit, 2: miss
     int defender_combat_anim; //0: none, 1: hit, 2: miss
+
+    bool enemy_phase;
 } GAMESTATE;
 
 void fight();
@@ -84,7 +94,11 @@ void wait();
 
 void forecast(GAMESTATE *gs, int attacker_index, int cursor_index);
 void get_targets(GAMESTATE *gs, int range, int x, int y);
-void set_map_threatened(GAMESTATE *gs);
+void set_map_threatened(GAMESTATE *gs, bool ally);
+
+void player_turn(GAMESTATE *gs);
+void enemy_turn(INPUTSTATE *is, GAMESTATE *gs);
+
 
 int gameinit(GAMESTATE* gamestate);
 

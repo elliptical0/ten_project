@@ -3,10 +3,12 @@
 const IMGDATA TSDATA[] = { // tileset data
     {tsuiTiles, tsuiTilesLen, tsuiPal, tsuiPalLen},
     {mpfieldTiles, mpfieldTilesLen, mpfieldPal, mpfieldPalLen},
+    {mpislandTiles, mpislandTilesLen, mpislandPal, mpislandPalLen},
     {mpMainMenuTiles, mpMainMenuTilesLen, mpMainMenuPal, mpMainMenuPalLen}
 };
 const MAPDATA MPDATA[] = { // map data
     {mpfieldMap, mpfieldMapLen, tsfield},
+    {mpislandMap, mpislandMapLen, tsisland},
     {mpMainMenuMap, mpMainMenuMapLen, tsmainmenu}
 };
 const UIELEMENT UIDATA[] = {
@@ -324,123 +326,132 @@ int render(unsigned int frame, INPUTSTATE* is, GAMESTATE* gs, RENDERSTATE* rs) {
         updateForecast(gs, is->cursor_map_x > 7, is->cursor_map_y < 5, true);
     }
 
-    // update unit sprites
     OBJ_ATTR *obj;
 
-    // update unit sprites and grid overlay
-    for(int y = 0; y < 10; y++) {
-        for(int x = 0; x < 15; x++) {
-            if(gs->map_units[y][x] != 0) { // unit sprites
-                obj = unit_obj_attr(gs->map_units[y][x]);
-                if(gs->units_plr[gs->map_units[y][x] - 1].hp <= 0 && gs->map_units[y][x] != gs->forecast.attacker_index && gs->map_units[y][x] != gs->forecast.defender_index) { // dead and not in combat animation
-                    gs->map_units[y][x] = 0; // tbh this belongs in gamestate but im short on time
-                    obj_set_attr(obj, ATTR0_HIDE, 0, 0);
+    if(gs->map != mpmainmenu) {
+    // update unit sprites
+
+        // update unit sprites and grid overlay
+        for(int y = 0; y < 10; y++) {
+            for(int x = 0; x < 15; x++) {
+                if(gs->map_units[y][x] != 0) { // unit sprites
+                    obj = unit_obj_attr(gs->map_units[y][x]);
+                    if(gs->units_plr[gs->map_units[y][x] - 1].hp <= 0 && gs->map_units[y][x] != gs->forecast.attacker_index && gs->map_units[y][x] != gs->forecast.defender_index) { // dead and not in combat animation
+                        gs->map_units[y][x] = 0; // tbh this belongs in gamestate but im short on time
+                        obj_set_attr(obj, ATTR0_HIDE, 0, 0);
+                    }
+                    //if(gs->map_units[y][x] == 10) {
+                    //    char buffer[4];
+                    //    sprintf(buffer, "%d", (obj->attr2 & ATTR2_PALBANK_MASK) >> ATTR2_PALBANK_SHIFT);
+                    //    tte_write(buffer);
+                    //}
+                    obj_set_pos(obj, x * 16, y * 16);
+                    if(!gs->enemy_phase) {
+                        if(gs->map_units[y][x] <= MAX_PLR_UNITS) {
+                            obj->attr2 = (obj->attr2 & ~ATTR2_PALBANK_MASK) | ATTR2_PALBANK(gs->units_plr[gs->map_units[y][x] - 1].can_act ? PLR_PAL1 : PLR_PAL2); // make sprites that cant act grey
+                        }
+                    }
                 }
-                //if(gs->map_units[y][x] == 10) {
-                //    char buffer[4];
-                //    sprintf(buffer, "%d", (obj->attr2 & ATTR2_PALBANK_MASK) >> ATTR2_PALBANK_SHIFT);
-                //    tte_write(buffer);
-                //}
-                obj_set_pos(obj, x * 16, y * 16);
-                if(gs->map_units[y][x] <= MAX_PLR_UNITS) {
-                    obj->attr2 = (obj->attr2 & ~ATTR2_PALBANK_MASK) | ATTR2_PALBANK(gs->units_plr[gs->map_units[y][x] - 1].can_act ? PLR_PAL1 : PLR_PAL2); // make sprites that cant act grey
+                if(gs->map_canmove_stale || gs->map_threatened_stale) { // grid overlay
+                    se_mem[GRID_SB][y * 64 + x * 2] = gs->map_canmove[y][x] ? (gs->map_threatened[y][x] ? 0xe010 : 0xe011) : (gs->map_threatened[y][x] ? 0xe021 : 0); // same tileset as UI! check "ui.c"
+                    se_mem[GRID_SB][y * 64 + x * 2 + 1] = gs->map_canmove[y][x] ? (gs->map_threatened[y][x] ? 0xe010 : 0xe011) : (gs->map_threatened[y][x] ? 0xe021 : 0); // same tileset as UI! check "ui.c"
+                    se_mem[GRID_SB][y * 64 + 32 + x * 2] = gs->map_canmove[y][x] ? (gs->map_threatened[y][x] ? 0xe010 : 0xe011) : (gs->map_threatened[y][x] ? 0xe021 : 0); // same tileset as UI! check "ui.c"
+                    se_mem[GRID_SB][y * 64 + 32 + x * 2 + 1] = gs->map_canmove[y][x] ? (gs->map_threatened[y][x] ? 0xe010 : 0xe011) : (gs->map_threatened[y][x] ? 0xe021 : 0); // same tileset as UI! check "ui.c"
                 }
-            }
-            if(gs->map_canmove_stale || gs->map_threatened_stale) { // grid overlay
-                se_mem[GRID_SB][y * 64 + x * 2] = gs->map_canmove[y][x] ? (gs->map_threatened[y][x] ? 0xe010 : 0xe011) : (gs->map_threatened[y][x] ? 0xe021 : 0); // same tileset as UI! check "ui.c"
-                se_mem[GRID_SB][y * 64 + x * 2 + 1] = gs->map_canmove[y][x] ? (gs->map_threatened[y][x] ? 0xe010 : 0xe011) : (gs->map_threatened[y][x] ? 0xe021 : 0); // same tileset as UI! check "ui.c"
-                se_mem[GRID_SB][y * 64 + 32 + x * 2] = gs->map_canmove[y][x] ? (gs->map_threatened[y][x] ? 0xe010 : 0xe011) : (gs->map_threatened[y][x] ? 0xe021 : 0); // same tileset as UI! check "ui.c"
-                se_mem[GRID_SB][y * 64 + 32 + x * 2 + 1] = gs->map_canmove[y][x] ? (gs->map_threatened[y][x] ? 0xe010 : 0xe011) : (gs->map_threatened[y][x] ? 0xe021 : 0); // same tileset as UI! check "ui.c"
             }
         }
-    }
-    gs->map_canmove_stale = false;
-    gs->map_threatened_stale = false;
+        gs->map_canmove_stale = false;
+        gs->map_threatened_stale = false;
 
-    if(gs->selected_unit != 0) {
-        obj = unit_obj_attr(gs->selected_unit);
-        obj_set_pos(obj, is->cursor_map_x * 16, is->cursor_map_y * 16);
-        obj->attr2 = (obj->attr2 & ~ATTR2_PALBANK_MASK) | ATTR2_PALBANK(gs->map_canmove[is->cursor_map_y][is->cursor_map_x] != 0 ? PLR_PAL1 : PLR_PAL3); // change palette if tile is impassable
+        if(!gs->enemy_phase && gs->selected_unit != 0) {
+            obj = unit_obj_attr(gs->selected_unit);
+            obj_set_pos(obj, is->cursor_map_x * 16, is->cursor_map_y * 16);
+            obj->attr2 = (obj->attr2 & ~ATTR2_PALBANK_MASK) | ATTR2_PALBANK(gs->map_canmove[is->cursor_map_y][is->cursor_map_x] != 0 ? PLR_PAL1 : PLR_PAL3); // change palette if tile is impassable
+        }
     }
 
     // update cursor sprite (will replace unit sprite update for selected unit)
-    if(is->mapmode) {
-        switch(is->input) {
-            case UP:
-                obj_set_pos(cursor, is->cursor_map_x * 16, is->cursor_map_y * 16 + is->anim_frame * CURS_SPD);
-                if(gs->selected_unit != 0) {
-                    obj_set_pos(unit_obj_attr(gs->selected_unit), is->cursor_map_x * 16, is->cursor_map_y * 16 + is->anim_frame * CURS_SPD);
-                }
-                break;
-            case DOWN:
-                obj_set_pos(cursor, is->cursor_map_x * 16, is->cursor_map_y * 16 - is->anim_frame * CURS_SPD);
-                if(gs->selected_unit != 0) {
-                    obj_set_pos(unit_obj_attr(gs->selected_unit), is->cursor_map_x * 16, is->cursor_map_y * 16 - is->anim_frame * CURS_SPD);
-                }
-                break;
-            case LEFT:
-                obj_set_pos(cursor, is->cursor_map_x * 16 + is->anim_frame * CURS_SPD, is->cursor_map_y * 16);
-                if(gs->selected_unit != 0) {
-                    obj_set_pos(unit_obj_attr(gs->selected_unit), is->cursor_map_x * 16 + is->anim_frame * CURS_SPD, is->cursor_map_y * 16);
-                }
-                break;
-            case RIGHT:
-                obj_set_pos(cursor, is->cursor_map_x * 16 - is->anim_frame * CURS_SPD, is->cursor_map_y * 16);
-                if(gs->selected_unit != 0) {
-                    obj_set_pos(unit_obj_attr(gs->selected_unit), is->cursor_map_x * 16 - is->anim_frame * CURS_SPD, is->cursor_map_y * 16);
-                }
-                break;
-            default:
-        }
-    } else {
-        switch(is->input) {
-            case UP:
-                obj_set_pos(cursor, cursor_menu_x, cursor_menu_y + is->cursor_menu_pos * 16 + is->anim_frame * CURS_SPD);
-                break;
-            case DOWN:
-                obj_set_pos(cursor, cursor_menu_x, cursor_menu_y + is->cursor_menu_pos * 16 - is->anim_frame * CURS_SPD);
-                break;
-            default:
+    if(!gs->enemy_phase) {
+        if(is->mapmode) {
+            switch(is->input) {
+                case UP:
+                    obj_set_pos(cursor, is->cursor_map_x * 16, is->cursor_map_y * 16 + is->anim_frame * CURS_SPD);
+                    if(gs->selected_unit != 0) {
+                        obj_set_pos(unit_obj_attr(gs->selected_unit), is->cursor_map_x * 16, is->cursor_map_y * 16 + is->anim_frame * CURS_SPD);
+                    }
+                    break;
+                case DOWN:
+                    obj_set_pos(cursor, is->cursor_map_x * 16, is->cursor_map_y * 16 - is->anim_frame * CURS_SPD);
+                    if(gs->selected_unit != 0) {
+                        obj_set_pos(unit_obj_attr(gs->selected_unit), is->cursor_map_x * 16, is->cursor_map_y * 16 - is->anim_frame * CURS_SPD);
+                    }
+                    break;
+                case LEFT:
+                    obj_set_pos(cursor, is->cursor_map_x * 16 + is->anim_frame * CURS_SPD, is->cursor_map_y * 16);
+                    if(gs->selected_unit != 0) {
+                        obj_set_pos(unit_obj_attr(gs->selected_unit), is->cursor_map_x * 16 + is->anim_frame * CURS_SPD, is->cursor_map_y * 16);
+                    }
+                    break;
+                case RIGHT:
+                    obj_set_pos(cursor, is->cursor_map_x * 16 - is->anim_frame * CURS_SPD, is->cursor_map_y * 16);
+                    if(gs->selected_unit != 0) {
+                        obj_set_pos(unit_obj_attr(gs->selected_unit), is->cursor_map_x * 16 - is->anim_frame * CURS_SPD, is->cursor_map_y * 16);
+                    }
+                    break;
+                default:
+            }
+        } else {
+            switch(is->input) {
+                case UP:
+                    obj_set_pos(cursor, cursor_menu_x, cursor_menu_y + is->cursor_menu_pos * 16 + is->anim_frame * CURS_SPD);
+                    break;
+                case DOWN:
+                    obj_set_pos(cursor, cursor_menu_x, cursor_menu_y + is->cursor_menu_pos * 16 - is->anim_frame * CURS_SPD);
+                    break;
+                default:
+            }
         }
     }
 
     // damage animation
-    if(gs->attacker_combat_anim != 0 || gs->defender_combat_anim != 0) {
-        int shake_x = rng_shake();
-        int shake_y = rng_shake();
-        obj = gs->attacker_combat_anim != 0 ? unit_obj_attr(gs->forecast.defender_index) : unit_obj_attr(gs->forecast.attacker_index);
-        
-        tte_erase_rect((obj->attr1 & ATTR1_X_MASK) - 2, obj->attr0 & ATTR0_Y_MASK, (obj->attr1 & ATTR1_X_MASK) + 17, (obj->attr0 & ATTR0_Y_MASK) + 17);
-        if(gs->attacker_combat_anim != 0 ? gs->attacker_combat_anim == 1 : gs->defender_combat_anim == 1) { // hit
-            if(is->anim_frame > 0) {
-                char buffer[4];
-                sprintf(buffer, "%d", gs->attacker_combat_anim != 0 ? gs->forecast.attacker_damage : gs->forecast.defender_damage);
-                tte_set_pos((obj->attr1 & ATTR1_X_MASK) + 5, (obj->attr0 & ATTR0_Y_MASK) + (is->anim_frame / 4) - 1);
-                tte_write(buffer);
-            }
-            obj_set_pos(obj, (obj->attr1 & ATTR1_X_MASK) + RANGE(shake_x, -(is->anim_frame / 4), (is->anim_frame / 4)), (obj->attr0 & ATTR0_Y_MASK) + RANGE(shake_y, -(is->anim_frame / 4), (is->anim_frame / 4)));
-            //obj_set_attr(obj, obj->attr0, obj->attr1, (obj->attr2 & ~ATTR2_PRIO_MASK) + (is->anim_frame == 0 ? ATTR2_PRIO(3) : ATTR2_PRIO(1))); // increase prio bc the shaking anim will overlap with adjacent sprites
-        } else { // miss
-            if(is->anim_frame > 0) {
-                tte_set_pos((obj->attr1 & ATTR1_X_MASK) - 2, (obj->attr0 & ATTR0_Y_MASK) + (is->anim_frame / 4) - 1);
-                tte_write("miss");
-            }
-        }
-        if(is->anim_frame == 0) {
-            if(gs->attacker_combat_anim != 0) {
-                 // part of death code
-                gs->attacker_combat_anim = 0;
-                if(gs->units_plr[gs->forecast.defender_index - 1].hp > 0) { // defender alive
-                    is->anim_frame = HIT_ANIM_FRAMES - 1;
-                } else {
-                    //gs->forecast.defender_index = 0;
-                    //gs->forecast.attacker_index = 0; // part of death code
+    if(gs->map != mpmainmenu) {
+        if(gs->attacker_combat_anim != 0 || gs->defender_combat_anim != 0) {
+            int shake_x = rng_shake();
+            int shake_y = rng_shake();
+            obj = gs->attacker_combat_anim != 0 ? unit_obj_attr(gs->forecast.defender_index) : unit_obj_attr(gs->forecast.attacker_index);
+            
+            tte_erase_rect((obj->attr1 & ATTR1_X_MASK) - 2, obj->attr0 & ATTR0_Y_MASK, (obj->attr1 & ATTR1_X_MASK) + 17, (obj->attr0 & ATTR0_Y_MASK) + 17);
+            if(gs->attacker_combat_anim != 0 ? gs->attacker_combat_anim == 1 : gs->defender_combat_anim == 1) { // hit
+                if(is->anim_frame > 0) {
+                    char buffer[4];
+                    sprintf(buffer, "%d", gs->attacker_combat_anim != 0 ? gs->forecast.attacker_damage : gs->forecast.defender_damage);
+                    tte_set_pos((obj->attr1 & ATTR1_X_MASK) + 5, (obj->attr0 & ATTR0_Y_MASK) + (is->anim_frame / 4) - 1);
+                    tte_write(buffer);
+                }
+                obj_set_pos(obj, (obj->attr1 & ATTR1_X_MASK) + RANGE(shake_x, -(is->anim_frame / 4), (is->anim_frame / 4)), (obj->attr0 & ATTR0_Y_MASK) + RANGE(shake_y, -(is->anim_frame / 4), (is->anim_frame / 4)));
+                //obj_set_attr(obj, obj->attr0, obj->attr1, (obj->attr2 & ~ATTR2_PRIO_MASK) + (is->anim_frame == 0 ? ATTR2_PRIO(3) : ATTR2_PRIO(1))); // increase prio bc the shaking anim will overlap with adjacent sprites
+            } else { // miss
+                if(is->anim_frame > 0) {
+                    tte_set_pos((obj->attr1 & ATTR1_X_MASK) - 2, (obj->attr0 & ATTR0_Y_MASK) + (is->anim_frame / 4) - 1);
+                    tte_write("miss");
                 }
             }
-            else if(gs->defender_combat_anim != 0) {
-                //gs->forecast.defender_index = 0;
-                //gs->forecast.attacker_index = 0; // part of death code
-                gs->defender_combat_anim = 0;
+            if(is->anim_frame == 0) {
+                if(gs->attacker_combat_anim != 0) {
+                    // part of death code
+                    gs->attacker_combat_anim = 0;
+                    if(gs->units_plr[gs->forecast.defender_index - 1].hp > 0) { // defender alive
+                        is->anim_frame = HIT_ANIM_FRAMES - 1;
+                    } else {
+                        //gs->forecast.defender_index = 0;
+                        //gs->forecast.attacker_index = 0; // part of death code
+                    }
+                }
+                else if(gs->defender_combat_anim != 0) {
+                    //gs->forecast.defender_index = 0;
+                    //gs->forecast.attacker_index = 0; // part of death code
+                    gs->defender_combat_anim = 0;
+                }
             }
         }
     }

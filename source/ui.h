@@ -1,12 +1,12 @@
 #pragma once
 
 #define ui_act_width 4
-#define ui_act_height 6
+#define ui_act_height 4 // 6
 #define ui_act_x 6
 #define ui_act_y 7
 extern const unsigned short ui_act[ui_act_width * ui_act_height];
-#define ui_act_lines 3
-extern const char *ui_act_text[3];
+#define ui_act_lines 2 // 3
+extern const char *ui_act_text[];
 
 #define ui_fight_width 8
 #define ui_fight_height 10

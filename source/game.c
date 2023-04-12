@@ -2,10 +2,10 @@
 
 //#define RANGE(a, x, y) if(a <= x) { a = x; } else if(a > y) { a = y; } // TODO: pls replace (use ternary?)
 
-const void ((*act_functions[])(INPUTSTATE *is, GAMESTATE *gs)) = {&fight, &item, &wait};
+const void ((*act_functions[])(INPUTSTATE *is, GAMESTATE *gs)) = {&fight, /*&item,*/ &wait};
 const void ((*fight_functions[])(INPUTSTATE *is, GAMESTATE *gs)) = {&damage};
 const MENU MENUDATA[] = {
-    {3, act_functions, NOUI},
+    {ui_act_lines, act_functions, NOUI},
     {1, fight_functions, uiact}
 };
 
@@ -40,7 +40,9 @@ void damage(INPUTSTATE *is, GAMESTATE *gs) {
 
     is->anim_frame = HIT_ANIM_FRAMES - 1;
 
-    wait(is, gs);
+    if(!gs->enemy_phase) {
+        wait(is, gs);
+    }
 }
 void item(INPUTSTATE *is, GAMESTATE *gs) {
     tte_set_pos(92, 80);
@@ -49,12 +51,24 @@ void item(INPUTSTATE *is, GAMESTATE *gs) {
 void wait(INPUTSTATE *is, GAMESTATE *gs) {
     gs->map_units[gs->selected_unit_map_y][gs->selected_unit_map_x] = 0;
     gs->map_units[is->cursor_map_y][is->cursor_map_x] = gs->selected_unit;
-    //gs->units_plr[gs->selected_unit - 1].can_act = false;
+    gs->units_plr[gs->selected_unit - 1].can_act = false;
     gs->selected_unit = 0;
 
     memset16(gs->map_canmove, 0, (10 * 15) / 2);
     gs->map_canmove_stale = true;
-    set_map_threatened(gs);
+    set_map_threatened(gs, false);
+
+    bool can_act = false;
+    for(int i = 0; i < MAX_PLR_UNITS && gs->data.units[i].maxhp != 0; i++) { // check if all player units have acted
+        if(gs->units_plr[i].can_act && gs->units_plr[i].hp > 0) {
+            can_act = true;
+            break;
+        }
+    }
+    if(!can_act) {
+        enemy_turn(is, gs);
+        // todo: add player_turn() after enemy phase. not in this function though
+    }
 
     gs->menu = NOUI;
 }
@@ -81,7 +95,11 @@ void forecast(GAMESTATE *gs, int attacker_index, int defender_index) { // progra
     gs->forecast.defender_weapon = &defender_weapon->name;
     gs->forecast.defender_hp = gs->units_plr[defender_index - 1].hp;
     gs->forecast.defender_damage = defender_attr->str + defender_weapon->str;
-    gs->forecast.defender_chance = defender_attr->hit + defender_weapon->hit - attacker_attr->avo - attacker_weapon->avo;
+    if((attacker_weapon->job == bow && defender_weapon->job == bow) || attacker_weapon->job != bow && defender_weapon->job != bow) {
+        gs->forecast.defender_chance = defender_attr->hit + defender_weapon->hit - attacker_attr->avo - attacker_weapon->avo;
+    } else {
+        gs->forecast.defender_chance = 0;
+    }
 
     // TODO: calculate attacker skills
     // TODO: calculate defender skills
@@ -142,12 +160,23 @@ void set_map_canmove(GAMESTATE* gs, int unit, int speed, int range, int unit_x, 
     }
 }
 
-void set_map_threatened(GAMESTATE* gs) {
+void set_map_canattack(GAMESTATE* gs, int unit) {
+    memset16(gs->map_threatened, 0, (10 * 15) / 2);
+    //for(int y = 0; y < 10; y++) { // TODO: this is inefficient :<
+    //    for(int x = 0; x < 15; x++) {
+    //        if(gs->map_units[y][x] == unit) {
+                set_map_canmove(gs, gs->map_units[gs->selected_unit_map_y][gs->selected_unit_map_x], 3, gs->units_plr[gs->map_units[gs->selected_unit_map_y][gs->selected_unit_map_x] - 1].unit_attr->job == bow ? 2 : 1, gs->selected_unit_map_x, gs->selected_unit_map_y, true);
+    //        }
+    //    }
+    //}
+}
+
+void set_map_threatened(GAMESTATE* gs, bool ally) {
     memset16(gs->map_threatened, 0, (10 * 15) / 2);
     for(int y = 0; y < 10; y++) {
         for(int x = 0; x < 15; x++) {
-            if(gs->map_units[y][x] > MAX_PLR_UNITS) { // is enemy unit
-                set_map_canmove(gs, gs->map_units[y][x], 3, gs->units_plr[gs->map_units[y][x] - 1].unit_attr->job == bow ? 2 : 1, x, y, true);
+            if(ally ? (gs->map_units[y][x] <= MAX_PLR_UNITS && gs->map_units[y][x] > 0) : gs->map_units[y][x] > MAX_PLR_UNITS) {
+              set_map_canmove(gs, gs->map_units[y][x], 3, gs->units_plr[gs->map_units[y][x] - 1].unit_attr->job == bow ? 2 : 1, x, y, true);
             }
         }
     }
@@ -155,11 +184,21 @@ void set_map_threatened(GAMESTATE* gs) {
 }
 
 void init_unit_status(GAMESTATE *gs, MAP map) {
+    tte_write("init unit status!");
+    memset16(gs->map_units, 0, 10 * 15 * 2);
+    //gs->map_units
     //char debug_maxhp[2] = {gs->data.units[0].maxhp + 0x30, 0};
     //tte_write(debug_maxhp);
     //tte_write(gs->data.units[0].name);
-    memset16(gs->units_plr, 0, (MAX_PLR_UNITS + MAX_ENEMY_UNITS) * (sizeof(UNIT_STATUS) / 2)); // re-initialize
+    UNIT_STATUS empty = {0, 0, 0, 0, 0};
+    for(int i = 0; i < MAX_PLR_UNITS + MAX_ENEMY_UNITS; i++) {
+        gs->units_plr[i] = empty;
+    }
+    gs->selected_unit = 0;
+    
+    //memset16(gs->units_plr, 0, (MAX_PLR_UNITS + MAX_ENEMY_UNITS) * (sizeof(UNIT_STATUS) / 2)); // re-initialize
     for(int i = 0; i < MAX_PLR_UNITS && gs->data.units[i].maxhp != 0; i++) {
+        tte_write("init plr!");
         gs->units_plr[i].unit_attr = gs->data.units + i;
         //tte_write(gs->units_plr[i].unit_attr->name);
         gs->units_plr[i].hp = gs->data.units[i].maxhp;
@@ -177,7 +216,9 @@ void init_unit_status(GAMESTATE *gs, MAP map) {
             }
         }
         gs->units_plr[i].can_act = true;
-        gs->map_units[(*MPPLRDATA)[map][i][1]][(*MPPLRDATA)[map][i][0]] = i + 1;
+        //tte_set_pos((*MPPLRDATA)[map][i][0] * 16, (*MPPLRDATA)[map][i][1] * 16);
+        //tte_write("spawn!");
+        gs->map_units[(*MPPLRDATA)[0][i][1]][(*MPPLRDATA)[0][i][0]] = i + 1;
     }
     for(int i = 0; i < MAX_ENEMY_UNITS && i < MPENEMYDATA_LEN[map]; i++) {
         gs->units_enemy[i].unit_attr = UNITDATA_ENEMY + MPENEMYDATA[map][i].unitdata_index;
@@ -190,18 +231,206 @@ void init_unit_status(GAMESTATE *gs, MAP map) {
 }
 
 void player_turn(GAMESTATE *gs) {
-    set_map_threatened(gs);
+    set_map_threatened(gs, false);
+    memset16(gs->map_canmove, 0, (10 * 15) / 2);
     for(int i = 0; i < MAX_PLR_UNITS; i++) {
         gs->units_plr[i].can_act = true;
     }
 }
 
+void enemy_move(INPUTSTATE *is, GAMESTATE *gs) {
+    if(gs->selected_unit == 0) { // state: no unit selected
+        //tte_write("phase 1");
+        for(int i = MAX_PLR_UNITS + 1; i <= MAX_PLR_UNITS + MAX_ENEMY_UNITS && (i - MAX_PLR_UNITS - 1) < MPENEMYDATA_LEN[gs->map]; i++) {
+            if(gs->units_plr[i - 1].hp > 0 && gs->units_plr[i - 1].can_act) {
+                gs->selected_unit = i;
+                for(int y = 0; y < 10; y++) { // TODO: this is inefficient :<
+                    for(int x = 0; x < 15; x++) {
+                        if(gs->map_units[y][x] == gs->selected_unit) {
+                            gs->selected_unit_map_x = x;
+                            gs->selected_unit_map_y = y;
+                            goto end_loop; // c doesnt have loop labels ;-;
+                        }
+                    }
+                }
+            }
+        }
+        end_loop:
+        if(gs->selected_unit == 0) {
+            gs->selected_unit = -1;
+        }
+    } else if(gs->selected_unit == -1) { // weird bugfix
+        gs->selected_unit = 0;
+        gs->enemy_phase = false;
+        player_turn(gs);
+    } else if(gs->forecast.attacker_index == 0) { // state: unit selected but no target selected
+        //tte_write("phase 2");
+        //gs->forecast.attacker_index = gs->selected_unit;
+        set_map_canattack(gs, gs->selected_unit); // if this causes a performance hiccup, put it in its own state
+        int target_index = 0;
+        int target_rating = -999999;
+        int target_x;
+        int target_y;
+        for(int y = 0; y < 10; y++) {
+            for(int x = 0; x < 15; x++) {
+                if(gs->map_threatened[y][x] != 0 && gs->map_units[y][x] <= MAX_PLR_UNITS && gs->map_units[y][x] > 0) {
+                    forecast(gs, gs->selected_unit, gs->map_units[y][x]);
+                    int hit_input = RANGE(gs->forecast.attacker_chance * ENEMY_HIT_WEIGHT / 100, 0, ENEMY_HIT_WEIGHT);
+                    int hp_input = RANGE(ENEMY_HP_WEIGHT * gs->forecast.attacker_damage / gs->forecast.attacker_hp, 0, ENEMY_HP_WEIGHT);
+                    int rating = hit_input + hp_input;
+                    if(rating > target_rating) {
+                        target_index = gs->map_units[y][x];
+                        target_rating = rating;
+                        target_x = x;
+                        target_y = y;
+                    }
+                    target_index = gs->map_units[y][x];
+                }
+            }
+        }
+        if(target_index > 0) {
+            gs->targetcount = 1;
+            gs->targetindex = 0;
+            gs->targets[0] = target_index;
+            gs->target_locations[0][0] = target_x;
+            gs->target_locations[0][1] = target_y;
+            tte_set_pos( gs->target_locations[0][0] * 16,  gs->target_locations[0][1] * 16);
+            forecast(gs, gs->selected_unit, gs->targets[0]);
+        }
+        
+    //} else if(gs->units_plr[gs->selected_unit - 1].can_act) { // state: target selected but hasnt moved yet
+        //tte_write("phase 3");
+        memset16(gs->map_canmove, 0, (10 * 15) / 2);
+        set_map_canmove(gs, gs->selected_unit, 3, 0, gs->selected_unit_map_x, gs->selected_unit_map_y, false);
+        set_map_threatened(gs, true);
+        
+        int range = gs->units_plr[gs->selected_unit - 1].unit_attr->job == bow ? 2 : 1;
+
+        int closest_enemy_x;
+        int closest_enemy_y;
+        for(int dist = 1; dist < 23; dist++) {
+            for(int v = -dist; v <= dist; v++) {
+                if(gs->selected_unit_map_y + v >= 0 && gs->selected_unit_map_y + v < 10) {
+                    int h = -ABS(dist - ABS(v));
+                    repeat:
+                    if(gs->selected_unit_map_x + h >= 0 && gs->selected_unit_map_x + h < 15) {
+                        //tte_set_pos((gs->selected_unit_map_x + h) * 16, (gs->selected_unit_map_y + v) * 16);
+                        //char test[5];
+                        //sprintf(test, "%d", dist);
+                        //tte_write(test);
+                        if(gs->map_units[gs->selected_unit_map_y + v][gs->selected_unit_map_x + h] > 0 && gs->map_units[gs->selected_unit_map_y + v][gs->selected_unit_map_x + h] <= MAX_PLR_UNITS) {
+                            //tte_set_pos((gs->selected_unit_map_x + h) * 16, (gs->selected_unit_map_y + v) * 16);
+                            //tte_write("E!");
+                            closest_enemy_x = gs->selected_unit_map_x + h;
+                            closest_enemy_y = gs->selected_unit_map_y + v;
+                            goto end_loop_2;
+                        }
+                    }
+                    if(h != ABS(dist - ABS(v))) {
+                        h = ABS(dist - ABS(v));
+                        goto repeat;
+                    }
+                }
+            }
+        }
+        end_loop_2:
+        
+        int move_x;
+        int move_y;
+        int move_rating = -999999;
+
+        for(int y = 0; y < 10; y++) {
+            for(int x = 0; x < 15; x++) {
+                if(gs->map_canmove[y][x]) {
+                    int approaching_input = ENEMY_APPROACHING_WEIGHT - ABS(x - closest_enemy_x) - ABS(y - closest_enemy_y);
+                    int rating;
+                    if(gs->forecast.defender_index != 0) {
+                        int target_dist_x = ABS(x - gs->target_locations[0][0]);
+                        int target_dist_y = ABS(y - gs->target_locations[0][1]);
+                        int threatening_input = ((target_dist_x + target_dist_y <= range) ? ENEMY_THREATENING_WEIGHT : 0);
+                        //int safe_input = gs->map_threatened[gs->selected_unit_map_y][gs->selected_unit_map_x] > 0 ? ENEMY_SAFE_WEIGHT : 0;
+                        rating = threatening_input + approaching_input; //+ safe_input; // + approaching_input;
+                    } else {
+                        rating = approaching_input;
+                    }
+                    if(rating > move_rating) {
+                        move_x = x;
+                        move_y = y;
+                        move_rating = rating;
+                    }
+                }
+            }
+        }
+        if(move_rating >= 0) {
+            gs->map_units[gs->selected_unit_map_y][gs->selected_unit_map_x] = 0;
+            gs->map_units[move_y][move_x] = gs->selected_unit;
+            is->anim_frame = HIT_ANIM_FRAMES - 1;
+            //tte_set_pos(move_x * 16, move_y * 16);
+            //tte_write("aa");
+            if(move_rating >= ENEMY_THREATENING_WEIGHT) {
+                damage(is, gs);
+            }
+        }
+
+        gs->units_plr[gs->selected_unit - 1].can_act = false;
+        gs->selected_unit = 0;
+    }
+}
+
+void level_up(GAMESTATE *gs) {
+    for(int i = 0; i < MAX_PLR_UNITS && gs->data.units[i].maxhp != 0; i++) {
+        switch(gs->data.units[i].job) {
+            case sword:
+                gs->data.units[i].maxhp += 2;
+                gs->data.units[i].str += 1;
+                gs->data.units[i].avo += 10;
+                gs->data.units[i].hit += 5;
+                break;
+            case bow:
+                gs->data.units[i].maxhp += 1;
+                gs->data.units[i].str += 2;
+                gs->data.units[i].avo += 10;
+                gs->data.units[i].hit += 10;
+                break;
+            default:
+        }
+    }
+}
+void recruit_unit(GAMESTATE *gs, int unit) {
+    for(int i = 0; i < MAX_PLR_UNITS; i++) {
+        if(gs->data.units[i].maxhp == 0) {
+            gs->data.units[i] = UNITDATA_PLR[unit];
+            break;
+        }
+    }
+}
+
 void change_map(INPUTSTATE *is, GAMESTATE *gs, MAP map) {
+    tte_erase_screen();
+    //save_game(&gs->data);
+    gs->enemy_phase = false;
     gs->map = map;
     if(map != mpmainmenu) {
         init_unit_status(gs, map);
         player_turn(gs);
         is->mapmode = true;
+    }
+}
+
+void enemy_turn(INPUTSTATE *is, GAMESTATE *gs) {
+    gs->enemy_phase = true;
+    memset16(gs->map_threatened, 0, (10 * 15) / 2);
+    bool alive = false;
+    for(int i = 0; i < MAX_ENEMY_UNITS && i < MPENEMYDATA_LEN[gs->map]; i++) {
+        if(gs->units_enemy[i].hp > 0) {
+            gs->units_enemy[i].can_act = true;
+            alive = true;
+        }
+    }
+    if(!alive) {
+        level_up(gs);
+        recruit_unit(gs, gs->map + 1);
+        change_map(is, gs, gs->map + 1);
     }
 }
 
@@ -223,21 +452,24 @@ int gameinit(GAMESTATE* gs) {
 
 // @return error code, or 0 if there are no errors.
 int game(unsigned int frame, INPUTSTATE* is, GAMESTATE* gs) {
-
-    if(gs->attacker_combat_anim == 0 && gs->defender_combat_anim == 0 && is->anim_frame == 0 && gs->menu != uifight) { // check if units are dead
+    if(gs->attacker_combat_anim == 0 && gs->defender_combat_anim == 0 && is->anim_frame == 0 && gs->menu != uifight && (gs->forecast.attacker_index != 0 || gs->forecast.defender_index != 0)) { // check if units are dead
         gs->forecast.defender_index = 0;
         gs->forecast.attacker_index = 0;
-        set_map_threatened(gs);
+        set_map_threatened(gs, false);
     }
 
-    if(!is->input_read) { // is->input != NOINPUT && !is->input_read) {
+    if(gs->enemy_phase) {
+        if(gs->attacker_combat_anim == 0 && gs->defender_combat_anim == 0 && is->anim_frame == 0) {
+            enemy_move(is, gs);
+        }
+    } else if(!is->input_read) { // is->input != NOINPUT && !is->input_read) {
         if(is->mapmode) {
             switch(is->input) {
                 case A:
                     if(gs->selected_unit != 0) {
                         //if(gs->map_units[is->cursor_map_y][is->cursor_map_x] == gs->selected_unit
                         //|| (gs->map_units[is->cursor_map_y][is->cursor_map_x] == 0 && (*MPTERRAINDATA[gs->map])[is->cursor_map_y][is->cursor_map_x] != impassable)) {
-                        if(gs->map_canmove[is->cursor_map_y][is->cursor_map_x] == gs->selected_unit) {
+                        if(gs->map_canmove[is->cursor_map_y][is->cursor_map_x] > 0) {
                             gs->menu = uiact;
                             is->cursor_menu_pos = 0;
                             is->mapmode = false;
@@ -269,16 +501,25 @@ int game(unsigned int frame, INPUTSTATE* is, GAMESTATE* gs) {
         } else {
             switch(is->input) {
                 case A:
+                    if(gs->map == mpmainmenu) {
+                        break;
+                    }
                     (*(MENUDATA[gs->menu].choice_functions[is->cursor_menu_pos]))(is, gs);
                     is->mapmode = gs->menu == NOUI;
                     break;
                 case B:
+                    if(gs->map == mpmainmenu) {
+                        break;
+                    }
                     gs->menu = MENUDATA[gs->menu].previous;
                     is->cursor_menu_pos = 0;
                     is->mapmode = gs->menu == NOUI;
                     break;
                 case UP:
                 case DOWN:
+                    if(gs->map == mpmainmenu) {
+                        break;
+                    }
                     if(is->cursor_menu_pos < 0) {
                         is->cursor_menu_pos = 0;
                         is->anim_frame = 0;
@@ -288,13 +529,13 @@ int game(unsigned int frame, INPUTSTATE* is, GAMESTATE* gs) {
                     }
                     break;
                 case LEFT:
-                    if(gs->menu == uifight) {
+                    if(gs->menu == uifight && gs->targetcount > 1) {
                         gs->targetindex = RANGE(gs->targetindex - 1, 0, gs->targetcount - 1);
                         forecast(gs, gs->selected_unit, gs->targets[gs->targetindex]);
                     }
                     break;
                 case RIGHT:
-                    if(gs->menu == uifight) {
+                    if(gs->menu == uifight && gs->targetcount > 1) {
                         gs->targetindex = RANGE(gs->targetindex + 1, 0, gs->targetcount - 1);
                         forecast(gs, gs->selected_unit, gs->targets[gs->targetindex]);
                     }

@@ -9,7 +9,8 @@ typedef enum SPRITE { // value of enum is a corresponding index in SPDATA and SP
 
 typedef enum MAP { // value of enum is a corresponding index in MAPSDATA (render.c)
     mpfield = 0,
-    mpmainmenu = 1
+    mpisland = 1,
+    mpmainmenu = 2
 } MAP;
 
 typedef enum UI { // value of enum is a corresponding index in MENUS and UIDATA (render.c)
