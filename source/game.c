@@ -184,7 +184,7 @@ void set_map_threatened(GAMESTATE* gs, bool ally) {
 }
 
 void init_unit_status(GAMESTATE *gs, MAP map) {
-    tte_write("init unit status!");
+    //tte_write("init unit status!");
     memset16(gs->map_units, 0, 10 * 15 * 2);
     //gs->map_units
     //char debug_maxhp[2] = {gs->data.units[0].maxhp + 0x30, 0};
@@ -198,7 +198,7 @@ void init_unit_status(GAMESTATE *gs, MAP map) {
     
     //memset16(gs->units_plr, 0, (MAX_PLR_UNITS + MAX_ENEMY_UNITS) * (sizeof(UNIT_STATUS) / 2)); // re-initialize
     for(int i = 0; i < MAX_PLR_UNITS && gs->data.units[i].maxhp != 0; i++) {
-        tte_write("init plr!");
+        //tte_write("init plr!");
         gs->units_plr[i].unit_attr = gs->data.units + i;
         //tte_write(gs->units_plr[i].unit_attr->name);
         gs->units_plr[i].hp = gs->data.units[i].maxhp;
